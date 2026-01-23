@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 
@@ -72,12 +73,12 @@ const ApplicationsPage = () => {
               Get started by applying to some jobs.
             </p>
             <div className="mt-6">
-              <a
-                href="/jobs"
+              <Link
+                to="/jobs"
                 className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
               >
                 Browse Jobs
-              </a>
+              </Link>
             </div>
           </div>
         ) : (
