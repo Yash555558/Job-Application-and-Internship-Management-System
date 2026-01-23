@@ -4,6 +4,7 @@ import { sendStatusEmail } from "../utils/sendEmail.js";
 import { Parser } from "json2csv";
 import fs from "fs";
 import path from "path";
+import axios from "axios";
 
 /**
  * @desc   Apply to a job
@@ -239,8 +240,6 @@ export const downloadResume = async (req, res) => {
     console.log("Resume URL:", resumeUrl);
     
     // Fetch the resume from Cloudinary
-    const axios = (await import('axios')).default;
-    
     try {
       const response = await axios.get(resumeUrl, { 
         responseType: 'arraybuffer' 
