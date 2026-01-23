@@ -214,6 +214,12 @@ export const downloadResume = async (req, res) => {
       .populate("userId", "name")
       .populate("jobId", "title");
     
+    // Debug logging
+    console.log("=== DEBUG INFO ===");
+    console.log("Application object:", application);
+    console.log("Application resumeLink:", application?.resumeLink);
+    console.log("==================");
+    
     if (!application) {
       console.log("Application not found");
       return res.status(404).json({ message: "Application not found" });
@@ -230,20 +236,32 @@ export const downloadResume = async (req, res) => {
       return res.status(403).json({ message: "Access denied" });
     }
     
-    const resumeUrl = application.resumeLink;
-    
-    if (!resumeUrl) {
-      console.log("Resume URL not found");
+    // Explicit guard for resume URL
+    if (!application.resumeLink) {
+      console.log("Resume URL not found in application");
       return res.status(404).json({ message: "Resume not found" });
     }
     
+    const resumeUrl = application.resumeLink;
     console.log("Resume URL:", resumeUrl);
     
-    // Fetch the resume from Cloudinary
+    // Fetch the resume from Cloudinary with enhanced error handling
     try {
+      console.log("Attempting to fetch from Cloudinary:", resumeUrl);
       const response = await axios.get(resumeUrl, { 
-        responseType: 'arraybuffer' 
+        responseType: 'arraybuffer',
+        timeout: 10000 // 10 second timeout
       });
+      
+      console.log("Cloudinary response status:", response.status);
+      console.log("Cloudinary response headers:", response.headers);
+      console.log("Response data length:", response.data?.length || 0);
+      
+      // Validate response
+      if (!response.data) {
+        console.error("Empty response from Cloudinary");
+        return res.status(500).json({ message: "Empty resume data received from storage" });
+      }
       
       // Set appropriate headers for download
       res.set({
@@ -261,7 +279,29 @@ export const downloadResume = async (req, res) => {
       res.send(Buffer.from(response.data));
       
     } catch (fetchError) {
-      console.error("Error fetching resume from Cloudinary:", fetchError.message);
+      console.error("=== CLOUDINARY FETCH ERROR ===");
+      console.error("Error type:", fetchError.constructor.name);
+      console.error("Error message:", fetchError.message);
+      console.error("Error code:", fetchError.code);
+      console.error("Response status:", fetchError.response?.status);
+      console.error("Response data:", fetchError.response?.data);
+      console.error("===============================");
+      
+      // More specific error messages
+      if (fetchError.response) {
+        if (fetchError.response.status === 404) {
+          return res.status(404).json({ message: "Resume file not found in storage" });
+        } else if (fetchError.response.status === 401) {
+          return res.status(500).json({ message: "Unauthorized access to resume storage" });
+        } else if (fetchError.response.status === 403) {
+          return res.status(500).json({ message: "Access forbidden to resume storage" });
+        }
+      } else if (fetchError.code === 'ECONNABORTED') {
+        return res.status(500).json({ message: "Timeout while fetching resume from storage" });
+      } else if (fetchError.code === 'ENOTFOUND') {
+        return res.status(500).json({ message: "Storage service not reachable" });
+      }
+      
       return res.status(500).json({ message: "Failed to fetch resume from storage" });
     }
     
