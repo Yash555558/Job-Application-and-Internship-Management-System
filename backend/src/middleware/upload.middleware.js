@@ -29,13 +29,15 @@ export default () => {
       }
       
       try {
-        // Upload to Cloudinary with explicit image resource type for PDF preview
+        // Upload to Cloudinary with image resource type for PDF preview
+        // This creates an image representation of the PDF that browsers can preview
         const result = await uploadToCloudinary(req.file.path, {
           folder: "resumes",
           resource_type: "image",
           format: "pdf",
           use_filename: true,
-          unique_filename: false
+          unique_filename: false,
+          public_id: `${Date.now()}_${req.file.originalname.replace(/\.[^/.]+$/, '')}`
         });
         
         // Clean up temporary file
