@@ -214,29 +214,23 @@ const Dashboard = () => {
                             <button
                               onClick={async () => {
                                 try {
-                                  const token = localStorage.getItem('token');
-                                  const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/applications/${application._id}/resume`, {
-                                    headers: {
-                                      'Authorization': `Bearer ${token}`
-                                    }
+                                  const response = await api.get(`/applications/${application._id}/resume`, {
+                                    responseType: 'blob'  // This tells axios to return binary data
                                   });
                                   
-                                  if (response.ok) {
-                                    const blob = await response.blob();
-                                    const url = window.URL.createObjectURL(blob);
-                                    const a = document.createElement('a');
-                                    a.href = url;
-                                    a.download = `resume-${application._id}.pdf`;
-                                    document.body.appendChild(a);
-                                    a.click();
-                                    window.URL.revokeObjectURL(url);
-                                    document.body.removeChild(a);
-                                  } else {
-                                    console.error('Download failed:', response.status);
-                                    // Handle error
-                                  }
+                                  // Create a blob from the response data
+                                  const blob = new Blob([response.data], { type: 'application/pdf' });
+                                  const url = window.URL.createObjectURL(blob);
+                                  const a = document.createElement('a');
+                                  a.href = url;
+                                  a.download = `resume-${application._id}.pdf`;
+                                  document.body.appendChild(a);
+                                  a.click();
+                                  window.URL.revokeObjectURL(url);
+                                  document.body.removeChild(a);
                                 } catch (error) {
                                   console.error('Download error:', error);
+                                  // Optionally show an error message to the user
                                 }
                               }}
                               className="text-gray-600 hover:text-gray-900 flex items-center transition-colors duration-200"

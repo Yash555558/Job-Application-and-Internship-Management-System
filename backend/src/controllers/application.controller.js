@@ -21,7 +21,7 @@ export const applyToJob = async (req, res) => {
       return res.status(400).json({ message: "Resume file is required" });
     }
 
-    const resumeLink = req.file.path;
+    const resumeLink = req.file.cloudinary.secureUrl;
 
     const job = await Job.findById(jobId);
     if (!job || !job.isActive) {
@@ -229,53 +229,42 @@ export const downloadResume = async (req, res) => {
       return res.status(403).json({ message: "Access denied" });
     }
     
-    const resumePath = application.resumeLink;
+    const resumeUrl = application.resumeLink;
     
-    if (!resumePath) {
-      console.log("Resume path not found");
+    if (!resumeUrl) {
+      console.log("Resume URL not found");
       return res.status(404).json({ message: "Resume not found" });
     }
     
-    console.log("Resume path:", resumePath);
+    console.log("Resume URL:", resumeUrl);
     
-    // Construct full file path
-    const fullPath = path.join(process.cwd(), resumePath);
+    // Fetch the resume from Cloudinary
+    const axios = (await import('axios')).default;
     
-    // Check if file exists
-    if (!fs.existsSync(fullPath)) {
-      console.log("Resume file not found at path:", fullPath);
-      return res.status(404).json({ message: "Resume file not found" });
+    try {
+      const response = await axios.get(resumeUrl, { 
+        responseType: 'arraybuffer' 
+      });
+      
+      // Set appropriate headers for download
+      res.set({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': 'attachment; filename="resume.pdf"',
+        'Content-Length': response.data.length,
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      });
+      
+      console.log("Sending resume data, size:", response.data.length, "bytes");
+      
+      // Send the PDF data
+      res.send(Buffer.from(response.data));
+      
+    } catch (fetchError) {
+      console.error("Error fetching resume from Cloudinary:", fetchError.message);
+      return res.status(500).json({ message: "Failed to fetch resume from storage" });
     }
-    
-    // Get file stats
-    const fileStats = fs.statSync(fullPath);
-    
-    // Extract filename from path
-    const fileName = path.basename(resumePath);
-    
-    console.log("Filename extracted:", fileName);
-    
-    // Set headers for direct download
-    const isPdfFile = fileName.toLowerCase().endsWith('.pdf');
-    const contentType = isPdfFile ? 'application/pdf' : 'application/octet-stream';
-    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-    res.setHeader('Content-Type', contentType);
-    res.setHeader('Content-Length', fileStats.size);
-    res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
-    
-    console.log("Headers set - Content-Disposition:", `attachment; filename="${fileName}"`);
-    console.log("File size:", fileStats.size, "bytes");
-    
-    // Stream the file from local storage
-    console.log("Streaming file from local storage...");
-    const fileStream = fs.createReadStream(fullPath);
-    
-    fileStream.on('error', (error) => {
-      console.error("File stream error:", error);
-      return res.status(500).json({ message: "Failed to stream resume file" });
-    });
-    
-    fileStream.pipe(res);
     
   } catch (error) {
     console.error("Resume download error:", error);

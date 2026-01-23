@@ -1,20 +1,28 @@
 import multer from "multer";
+import { v2 as cloudinary } from "cloudinary";
 import fs from "fs";
 import path from "path";
 
-// Create resumes directory if it doesn't exist
-const resumesDir = path.join(process.cwd(), 'resumes');
-if (!fs.existsSync(resumesDir)) {
-  fs.mkdirSync(resumesDir, { recursive: true });
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+// Create temporary uploads directory if it doesn't exist
+const uploadsDir = path.join(process.cwd(), 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// Configure multer for local file storage
+// Configure multer for temporary local file storage
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, resumesDir);
+    cb(null, uploadsDir);
   },
   filename: function (req, file, cb) {
-    // Generate unique filename with timestamp and original name
+    // Generate unique filename with timestamp
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const ext = path.extname(file.originalname);
     const basename = path.basename(file.originalname, ext);
@@ -27,6 +35,13 @@ const uploadMiddleware = multer({
   storage: storage,
   limits: {
     fileSize: 5 * 1024 * 1024 // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'application/pdf') {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF files are allowed'), false);
+    }
   }
 });
 
@@ -51,28 +66,40 @@ export default () => {
       }
       
       try {
-        // File is already stored locally by multer diskStorage
-        // req.file.path contains the full local file path
-        
-        // Log for verification
-        console.log("Local file upload result:", {
-          filename: req.file.filename,
-          originalname: req.file.originalname,
-          path: req.file.path,
-          size: req.file.size
+        // Upload PDF to Cloudinary with professional configuration
+        const result = await cloudinary.uploader.upload(req.file.path, {
+          folder: "resumes",
+          resource_type: "image",   // MUST use image for PDF preview
+          format: "pdf",          // MUST specify PDF format
+          use_filename: true,
+          unique_filename: true
         });
         
-        // Store the relative path for database storage
-        req.file.path = `/resumes/${req.file.filename}`;
+        // Mandatory verification
+        console.log("Cloudinary upload result:", {
+          resource_type: result.resource_type,  // MUST log "image"
+          public_id: result.public_id,
+          secure_url: result.secure_url,
+          format: result.format
+        });
+        
+        // Clean up temporary file
+        fs.unlinkSync(req.file.path);
+        
+        // Store the Cloudinary info for database storage
+        req.file.cloudinary = {
+          publicId: result.public_id,
+          secureUrl: result.secure_url
+        };
         
         next();
       } catch (error) {
-        // Clean up file on error
+        // Clean up temporary file on error
         if (req.file && fs.existsSync(req.file.path)) {
           fs.unlinkSync(req.file.path);
         }
-        console.error('Local file upload error:', error);
-        return res.status(500).json({ message: 'Failed to upload resume' });
+        console.error('Cloudinary upload error:', error);
+        return res.status(500).json({ message: 'Failed to upload resume to Cloudinary' });
       }
     });
   };
