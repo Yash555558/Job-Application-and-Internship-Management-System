@@ -200,6 +200,10 @@ export const exportApplicationsCSV = async (req, res) => {
  */
 export const downloadResume = async (req, res) => {
   try {
+    console.log("Download resume request received for ID:", req.params.id);
+    console.log("User ID:", req.user.id);
+    console.log("User role:", req.user.role);
+    
     const { id } = req.params;
     
     // Find the application
@@ -208,35 +212,54 @@ export const downloadResume = async (req, res) => {
       .populate("jobId", "title");
     
     if (!application) {
+      console.log("Application not found");
       return res.status(404).json({ message: "Application not found" });
     }
     
+    console.log("Application found:", application._id);
+    console.log("Application user ID:", application.userId._id.toString());
+    
     // Check if user owns this application (unless admin)
     if (req.user.role !== 'admin' && application.userId._id.toString() !== req.user.id) {
+      console.log("Access denied - User ID mismatch");
+      console.log("Request user ID:", req.user.id);
+      console.log("Application user ID:", application.userId._id.toString());
       return res.status(403).json({ message: "Access denied" });
     }
     
     const resumeUrl = application.resumeLink;
     
     if (!resumeUrl) {
+      console.log("Resume URL not found");
       return res.status(404).json({ message: "Resume not found" });
     }
+    
+    console.log("Resume URL:", resumeUrl);
     
     // Extract filename from URL or create one
     const urlParts = resumeUrl.split('/');
     const fileName = urlParts[urlParts.length - 1] || 'resume.pdf';
     
+    console.log("Filename extracted:", fileName);
+    
     // Set headers for direct download
     res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
     res.setHeader('Content-Type', 'application/pdf');
     
+    console.log("Headers set - Content-Disposition:", `attachment; filename="${fileName}"`);
+    
     // Stream the file from Cloudinary
+    console.log("Fetching from Cloudinary...");
     const response = await fetch(resumeUrl);
     
+    console.log("Cloudinary response status:", response.status);
+    
     if (!response.ok) {
+      console.log("Cloudinary fetch failed with status:", response.status);
       return res.status(500).json({ message: "Failed to fetch resume from storage" });
     }
     
+    console.log("Streaming response to client...");
     // Pipe the response to client
     response.body.pipe(res);
     
