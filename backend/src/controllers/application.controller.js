@@ -260,8 +260,11 @@ export const downloadResume = async (req, res) => {
     console.log("Filename extracted:", fileName);
     
     // Set headers for direct download
+    // For raw files, we need to ensure proper content type
+    const contentType = resumeUrl.includes('/raw/upload/') ? 'application/octet-stream' : 'application/pdf';
     res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
     
     console.log("Headers set - Content-Disposition:", `attachment; filename="${fileName}"`);
     
