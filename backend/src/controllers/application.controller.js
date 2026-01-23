@@ -192,3 +192,56 @@ export const exportApplicationsCSV = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+/**
+ * @desc   Download resume file directly from server
+ * @route  GET /api/applications/:id/resume
+ * @access User
+ */
+export const downloadResume = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Find the application
+    const application = await Application.findById(id)
+      .populate("userId", "name")
+      .populate("jobId", "title");
+    
+    if (!application) {
+      return res.status(404).json({ message: "Application not found" });
+    }
+    
+    // Check if user owns this application (unless admin)
+    if (req.user.role !== 'admin' && application.userId._id.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+    
+    const resumeUrl = application.resumeLink;
+    
+    if (!resumeUrl) {
+      return res.status(404).json({ message: "Resume not found" });
+    }
+    
+    // Extract filename from URL or create one
+    const urlParts = resumeUrl.split('/');
+    const fileName = urlParts[urlParts.length - 1] || 'resume.pdf';
+    
+    // Set headers for direct download
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.setHeader('Content-Type', 'application/pdf');
+    
+    // Stream the file from Cloudinary
+    const response = await fetch(resumeUrl);
+    
+    if (!response.ok) {
+      return res.status(500).json({ message: "Failed to fetch resume from storage" });
+    }
+    
+    // Pipe the response to client
+    response.body.pipe(res);
+    
+  } catch (error) {
+    console.error("Resume download error:", error);
+    res.status(500).json({ message: "Failed to download resume" });
+  }
+};

@@ -7,7 +7,8 @@ import {
   getAllApplications,
   updateApplicationStatus,
   applicationsPerJob,
-  exportApplicationsCSV
+  exportApplicationsCSV,
+  downloadResume
 } from "../controllers/application.controller.js";
 
 const router = express.Router();
@@ -25,6 +26,7 @@ router.post(
   applyToJob
 );
 router.get("/me", authMiddleware, getMyApplications);
+router.get("/:id/resume", authMiddleware, downloadResume);
 
 /* Admin */
 router.get("/", authMiddleware, adminOnly, getAllApplications);

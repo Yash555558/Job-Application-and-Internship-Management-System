@@ -211,17 +211,15 @@ const Dashboard = () => {
                             View
                           </Link>
                           {application.resumeLink && (
-                            <a
-                              href={application.resumeLink}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                            <button
+                              onClick={() => window.open(`/api/applications/${application._id}/resume`, '_blank')}
                               className="text-gray-600 hover:text-gray-900 flex items-center transition-colors duration-200"
                             >
                               <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                               </svg>
-                              Resume
-                            </a>
+                              Download
+                            </button>
                           )}
                         </div>
                       </td>

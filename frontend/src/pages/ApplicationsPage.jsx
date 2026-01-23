@@ -132,7 +132,10 @@ const ApplicationsPage = () => {
                         >
                           View Details
                         </button>
-                        <button className="text-gray-600 hover:text-gray-900">
+                        <button 
+                          onClick={() => window.open(`/api/applications/${application._id}/resume`, '_blank')}
+                          className="text-gray-600 hover:text-gray-900"
+                        >
                           Download Resume
                         </button>
                       </td>
@@ -212,7 +215,10 @@ const ApplicationsPage = () => {
                   >
                     Close
                   </button>
-                  <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                  <button 
+                    onClick={() => window.open(`/api/applications/${selectedApplication._id}/resume`, '_blank')}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                  >
                     Download Resume
                   </button>
                 </div>
