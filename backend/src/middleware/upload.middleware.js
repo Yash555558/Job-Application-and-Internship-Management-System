@@ -21,8 +21,8 @@ const initializeCloudinary = async () => {
       cloudinary,
       params: {
         folder: "resumes",
-        resource_type: "raw",
-        format: async () => "pdf"
+        resource_type: "image",
+        format: "pdf"
       }
     });
     
