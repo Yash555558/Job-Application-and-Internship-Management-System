@@ -238,6 +238,15 @@ export const downloadResume = async (req, res) => {
     console.log("URL contains raw/upload:", resumeUrl.includes('/raw/upload/'));
     console.log("URL contains image/upload:", resumeUrl.includes('/image/upload/'));
     
+    // Test if URL is accessible
+    try {
+      const testResponse = await fetch(resumeUrl, { method: 'HEAD' });
+      console.log("URL accessibility test - Status:", testResponse.status);
+      console.log("URL accessibility test - Headers:", Object.fromEntries(testResponse.headers));
+    } catch (testError) {
+      console.log("URL accessibility test failed:", testError.message);
+    }
+    
     // Extract filename from URL or create one
     // Handle both raw and image URLs
     let fileName = 'resume.pdf';
@@ -273,15 +282,19 @@ export const downloadResume = async (req, res) => {
     const response = await fetch(resumeUrl);
     
     console.log("Cloudinary response status:", response.status);
+    console.log("Cloudinary response headers:", Object.fromEntries(response.headers));
     
     if (!response.ok) {
       console.log("Cloudinary fetch failed with status:", response.status);
       return res.status(500).json({ message: "Failed to fetch resume from storage" });
     }
     
-    console.log("Streaming response to client...");
-    // Pipe the response to client
-    response.body.pipe(res);
+    // Get the buffer from the response
+    const buffer = await response.arrayBuffer();
+    console.log("File size:", buffer.byteLength, "bytes");
+    
+    // Send the buffer directly
+    res.end(Buffer.from(buffer));
     
   } catch (error) {
     console.error("Resume download error:", error);
