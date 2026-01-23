@@ -132,32 +132,7 @@ const ApplicationsPage = () => {
                         >
                           View Details
                         </button>
-                        <button 
-                          onClick={async () => {
-                            try {
-                              const response = await api.get(`/applications/${application._id}/resume`, {
-                                responseType: 'blob'  // This tells axios to return binary data
-                              });
-                              
-                              // Create a blob from the response data
-                              const blob = new Blob([response.data], { type: 'application/pdf' });
-                              const url = window.URL.createObjectURL(blob);
-                              const a = document.createElement('a');
-                              a.href = url;
-                              a.download = `resume-${application._id}.pdf`;
-                              document.body.appendChild(a);
-                              a.click();
-                              window.URL.revokeObjectURL(url);
-                              document.body.removeChild(a);
-                            } catch (error) {
-                              console.error('Download error:', error);
-                              // Optionally show an error message to the user
-                            }
-                          }}
-                          className="text-gray-600 hover:text-gray-900"
-                        >
-                          Download Resume
-                        </button>
+
                       </td>
                     </tr>
                   ))}
@@ -235,32 +210,7 @@ const ApplicationsPage = () => {
                   >
                     Close
                   </button>
-                  <button 
-                    onClick={async () => {
-                      try {
-                        const response = await api.get(`/applications/${selectedApplication._id}/resume`, {
-                          responseType: 'blob'  // This tells axios to return binary data
-                        });
-                        
-                        // Create a blob from the response data
-                        const blob = new Blob([response.data], { type: 'application/pdf' });
-                        const url = window.URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `resume-${selectedApplication._id}.pdf`;
-                        document.body.appendChild(a);
-                        a.click();
-                        window.URL.revokeObjectURL(url);
-                        document.body.removeChild(a);
-                      } catch (error) {
-                        console.error('Download error:', error);
-                        // Optionally show an error message to the user
-                      }
-                    }}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                  >
-                    Download Resume
-                  </button>
+
                 </div>
               </div>
             </div>

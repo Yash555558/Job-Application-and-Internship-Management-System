@@ -64,11 +64,17 @@ export const getJobById = async (req, res) => {
 export const createJob = async (req, res) => {
   try {
     const { title, description, skills, type, location } = req.body;
+    
+    // Convert comma-separated string to array if needed
+    let skillsArray = skills;
+    if (typeof skills === 'string') {
+      skillsArray = skills.split(',').map(skill => skill.trim()).filter(skill => skill);
+    }
 
     const job = await Job.create({
       title,
       description,
-      skills,
+      skills: skillsArray,
       type,
       location
     });
@@ -92,7 +98,23 @@ export const updateJob = async (req, res) => {
       return res.status(404).json({ message: "Job not found" });
     }
 
-    Object.assign(job, req.body);
+    const { title, description, skills, type, location, isActive } = req.body;
+    
+    // Update fields individually to handle skills conversion
+    if (title !== undefined) job.title = title;
+    if (description !== undefined) job.description = description;
+    if (skills !== undefined) {
+      // Convert comma-separated string to array if needed
+      if (typeof skills === 'string') {
+        job.skills = skills.split(',').map(skill => skill.trim()).filter(skill => skill);
+      } else {
+        job.skills = skills;
+      }
+    }
+    if (type !== undefined) job.type = type;
+    if (location !== undefined) job.location = location;
+    if (isActive !== undefined) job.isActive = isActive;
+    
     await job.save();
 
     res.json(job);

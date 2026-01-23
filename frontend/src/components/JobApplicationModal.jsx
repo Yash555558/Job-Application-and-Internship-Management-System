@@ -2,11 +2,26 @@ import React, { useState } from 'react';
 import toast from 'react-hot-toast';
 
 const JobApplicationModal = ({ job, isOpen, onClose, onSubmit }) => {
-  const [coverNote, setCoverNote] = useState('');
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    coverNote: '',
+    education: '',
+    experience: '',
+    skills: ''
+  });
   const [resume, setResume] = useState(null);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
   if (!isOpen) return null;
 
   const handleFileChange = (e) => {
@@ -40,10 +55,40 @@ const JobApplicationModal = ({ job, isOpen, onClose, onSubmit }) => {
       setErrors({ resume: 'Please upload your resume' });
       return;
     }
+    
+    if (!formData.name.trim()) {
+      setErrors({ name: 'Name is required' });
+      return;
+    }
+    
+    if (!formData.email.trim()) {
+      setErrors({ email: 'Email is required' });
+      return;
+    }
+    
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      setErrors({ email: 'Please enter a valid email' });
+      return;
+    }
+    
+    if (!formData.phone.trim()) {
+      setErrors({ phone: 'Phone number is required' });
+      return;
+    }
+    
+    if (!formData.education.trim()) {
+      setErrors({ education: 'Education is required' });
+      return;
+    }
+    
+    if (!formData.experience.trim()) {
+      setErrors({ experience: 'Experience is required' });
+      return;
+    }
 
     setLoading(true);
     try {
-      await onSubmit(job._id, coverNote, resume);
+      await onSubmit(job._id, { ...formData, resume });
       toast.success('Application submitted successfully!');
       onClose();
     } catch (error) {
@@ -92,15 +137,117 @@ const JobApplicationModal = ({ job, isOpen, onClose, onSubmit }) => {
             </div>
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                Full Name *
+              </label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                value={formData.name}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter your full name"
+              />
+              {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
+            </div>
+            
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                Email Address *
+              </label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter your email address"
+              />
+              {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+                Phone Number *
+              </label>
+              <input
+                type="tel"
+                id="phone"
+                name="phone"
+                value={formData.phone}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter your phone number"
+              />
+              {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
+            </div>
+            
+            <div>
+              <label htmlFor="education" className="block text-sm font-medium text-gray-700 mb-2">
+                Education *
+              </label>
+              <input
+                type="text"
+                id="education"
+                name="education"
+                value={formData.education}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                placeholder="e.g., B.Tech Computer Science, MBA Finance"
+              />
+              {errors.education && <p className="mt-1 text-sm text-red-600">{errors.education}</p>}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+              <label htmlFor="experience" className="block text-sm font-medium text-gray-700 mb-2">
+                Years of Experience *
+              </label>
+              <input
+                type="text"
+                id="experience"
+                name="experience"
+                value={formData.experience}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                placeholder="e.g., 2 years, Fresher, 5+ years"
+              />
+              {errors.experience && <p className="mt-1 text-sm text-red-600">{errors.experience}</p>}
+            </div>
+            
+            <div>
+              <label htmlFor="skills" className="block text-sm font-medium text-gray-700 mb-2">
+                Skills (comma separated)
+              </label>
+              <input
+                type="text"
+                id="skills"
+                name="skills"
+                value={formData.skills}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                placeholder="e.g., JavaScript, React, Node.js, Python"
+              />
+            </div>
+          </div>
+
           <div className="mb-6">
             <label htmlFor="coverNote" className="block text-sm font-medium text-gray-700 mb-2">
               Cover Letter (Optional)
             </label>
             <textarea
               id="coverNote"
+              name="coverNote"
               rows={4}
-              value={coverNote}
-              onChange={(e) => setCoverNote(e.target.value)}
+              value={formData.coverNote}
+              onChange={handleInputChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               placeholder="Tell the employer why you're interested in this position..."
             />

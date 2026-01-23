@@ -210,37 +210,7 @@ const Dashboard = () => {
                             </svg>
                             View
                           </Link>
-                          {application.resumeLink && (
-                            <button
-                              onClick={async () => {
-                                try {
-                                  const response = await api.get(`/applications/${application._id}/resume`, {
-                                    responseType: 'blob'  // This tells axios to return binary data
-                                  });
-                                  
-                                  // Create a blob from the response data
-                                  const blob = new Blob([response.data], { type: 'application/pdf' });
-                                  const url = window.URL.createObjectURL(blob);
-                                  const a = document.createElement('a');
-                                  a.href = url;
-                                  a.download = `resume-${application._id}.pdf`;
-                                  document.body.appendChild(a);
-                                  a.click();
-                                  window.URL.revokeObjectURL(url);
-                                  document.body.removeChild(a);
-                                } catch (error) {
-                                  console.error('Download error:', error);
-                                  // Optionally show an error message to the user
-                                }
-                              }}
-                              className="text-gray-600 hover:text-gray-900 flex items-center transition-colors duration-200"
-                            >
-                              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                              </svg>
-                              Download
-                            </button>
-                          )}
+
                         </div>
                       </td>
                     </tr>

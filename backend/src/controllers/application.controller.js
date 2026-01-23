@@ -16,10 +16,15 @@ export const applyToJob = async (req, res) => {
     console.log("BODY:", req.body);
     console.log("FILE:", req.file);
 
-    const { jobId, coverNote } = req.body;
+    const { jobId, name, email, phone, coverNote, education, experience, skills } = req.body;
 
     if (!req.file) {
       return res.status(400).json({ message: "Resume file is required" });
+    }
+
+    // Validate required fields
+    if (!name || !email || !phone || !education || !experience) {
+      return res.status(400).json({ message: "All required fields (name, email, phone, education, experience) must be provided" });
     }
 
     const resumeLink = req.file.cloudinary.secureUrl;
@@ -33,6 +38,12 @@ export const applyToJob = async (req, res) => {
       userId: req.user.id,
       jobId,
       resumeLink,
+      name,
+      email,
+      phone,
+      education,
+      experience,
+      skills,
       coverNote,
       statusHistory: [{ status: "Applied", changedAt: new Date() }]
     });
@@ -86,7 +97,6 @@ export const getAllApplications = async (req, res) => {
     const applications = await Application.find(query)
       .skip(skip)
       .limit(Number(limit))
-      .populate("userId", "name email")
       .populate("jobId", "title type")
       .sort({ appliedAt: -1 });
 
@@ -178,8 +188,12 @@ export const exportApplicationsCSV = async (req, res) => {
       .populate("jobId", "title");
 
     const data = applications.map(app => ({
-      applicantName: app.userId.name,
-      email: app.userId.email,
+      applicantName: app.name,
+      email: app.email,
+      phone: app.phone,
+      education: app.education,
+      experience: app.experience,
+      skills: app.skills,
       jobTitle: app.jobId.title,
       status: app.status,
       appliedAt: app.appliedAt
@@ -245,47 +259,39 @@ export const downloadResume = async (req, res) => {
     const resumeUrl = application.resumeLink;
     console.log("Resume URL:", resumeUrl);
     
-    // Try direct fetch first, fallback to signed URL if needed
+    // Generate authenticated download URL using Cloudinary API
     try {
-      console.log("Attempting direct fetch from Cloudinary:", resumeUrl);
-      let response;
+      console.log("Generating authenticated download URL");
       
-      try {
-        // First attempt: direct public access
-        response = await axios.get(resumeUrl, { 
-          responseType: 'arraybuffer',
-          timeout: 10000 // 10 second timeout
-        });
-      } catch (directError) {
-        // If direct access fails with 401/403, try signed URL
-        if (directError.response?.status === 401 || directError.response?.status === 403) {
-          console.log("Direct access failed, generating signed URL...");
-          
-          // Generate signed URL as fallback
-          const cloudinary = (await import('cloudinary')).v2;
-          
-          // Extract public ID from URL
-          const urlParts = resumeUrl.split('/');
-          const fileName = urlParts[urlParts.length - 1].replace('.pdf', '');
-          const publicId = `resumes/${fileName}`;
-          
-          const signedUrl = cloudinary.url(publicId, {
-            resource_type: 'image',
-            format: 'pdf',
-            sign_url: true,
-            expires_at: Math.floor(Date.now() / 1000) + 3600 // 1 hour expiry
-          });
-          
-          console.log("Using signed URL:", signedUrl);
-          response = await axios.get(signedUrl, { 
-            responseType: 'arraybuffer',
-            timeout: 10000
-          });
-        } else {
-          // Re-throw if it's a different error
-          throw directError;
-        }
-      }
+      // Import Cloudinary
+      const cloudinary = (await import('cloudinary')).v2;
+      
+      // Extract public ID from URL
+      const urlParts = resumeUrl.split('/');
+      const fileName = urlParts[urlParts.length - 1].replace('.pdf', '');
+      const publicId = `resumes/${fileName}`;
+      
+      console.log("Public ID:", publicId);
+      
+      // Generate authenticated download URL
+      const downloadUrl = cloudinary.url(publicId, {
+        resource_type: 'image',
+        format: 'pdf',
+        type: 'authenticated',
+        sign_url: true,
+        expires_at: Math.floor(Date.now() / 1000) + 3600 // 1 hour expiry
+      });
+      
+      console.log("Authenticated download URL:", downloadUrl);
+      
+      // Fetch the file using the authenticated URL
+      const response = await axios.get(downloadUrl, { 
+        responseType: 'arraybuffer',
+        timeout: 15000 // 15 second timeout
+      });
+      
+      console.log("Download response status:", response.status);
+      console.log("Download response size:", response.data?.length || 0);
       
       console.log("Cloudinary response status:", response.status);
       console.log("Cloudinary response headers:", response.headers);

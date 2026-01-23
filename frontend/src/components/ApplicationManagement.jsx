@@ -189,8 +189,11 @@ const ApplicationManagement = () => {
                 filteredApplications.map(application => (
                   <tr key={application._id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{application.userId?.name}</div>
-                      <div className="text-sm text-gray-500">{application.userId?.email}</div>
+                      <div className="text-sm font-medium text-gray-900">{application.name}</div>
+                      <div className="text-sm text-gray-500">{application.email}</div>
+                      <div className="text-sm text-gray-500">{application.phone}</div>
+                      <div className="text-sm text-gray-500">{application.education}</div>
+                      <div className="text-sm text-gray-500">Exp: {application.experience}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{application.jobId?.title}</div>
@@ -221,14 +224,7 @@ const ApplicationManagement = () => {
                           <option value="Selected">Selected</option>
                           <option value="Rejected">Rejected</option>
                         </select>
-                        <a
-                          href={application.resumeLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:text-blue-900 text-xs"
-                        >
-                          View Resume
-                        </a>
+
                       </div>
                     </td>
                   </tr>
