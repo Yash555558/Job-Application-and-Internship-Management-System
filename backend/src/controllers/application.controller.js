@@ -235,10 +235,27 @@ export const downloadResume = async (req, res) => {
     }
     
     console.log("Resume URL:", resumeUrl);
+    console.log("URL contains raw/upload:", resumeUrl.includes('/raw/upload/'));
+    console.log("URL contains image/upload:", resumeUrl.includes('/image/upload/'));
     
     // Extract filename from URL or create one
-    const urlParts = resumeUrl.split('/');
-    const fileName = urlParts[urlParts.length - 1] || 'resume.pdf';
+    // Handle both raw and image URLs
+    let fileName = 'resume.pdf';
+    if (resumeUrl.includes('/raw/upload/')) {
+      // Raw file URL - extract actual filename
+      const urlParts = resumeUrl.split('/');
+      const filePart = urlParts[urlParts.length - 1];
+      if (filePart && filePart !== 'null') {
+        fileName = filePart;
+      }
+    } else {
+      // Image/PDF URL - use original filename or default
+      const urlParts = resumeUrl.split('/');
+      const filePart = urlParts[urlParts.length - 1];
+      if (filePart && filePart !== 'null') {
+        fileName = filePart;
+      }
+    }
     
     console.log("Filename extracted:", fileName);
     
