@@ -42,6 +42,12 @@ export default () => {
           access_mode: "public"  // Ensure the resource is publicly accessible
         });
         
+        // Log for verification
+        console.log("Cloudinary upload result:", {
+          access_mode: result.access_mode,
+          secure_url: result.secure_url
+        });
+        
         // Clean up temporary file
         fs.unlinkSync(req.file.path);
         
