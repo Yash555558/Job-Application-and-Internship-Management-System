@@ -37,7 +37,9 @@ export default () => {
           format: "pdf",
           use_filename: true,
           unique_filename: false,
-          public_id: `${Date.now()}_${req.file.originalname.replace(/\.[^/.]+$/, '')}`
+          public_id: `${Date.now()}_${req.file.originalname.replace(/\.[^/.]+$/, '')}`,
+          type: "upload",  // Ensure it's uploaded as a public resource
+          access_mode: "public"  // Ensure the resource is publicly accessible
         });
         
         // Clean up temporary file
