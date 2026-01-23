@@ -72,7 +72,9 @@ export default () => {
           resource_type: "image",   // MUST use image for PDF preview
           format: "pdf",          // MUST specify PDF format
           use_filename: true,
-          unique_filename: true
+          unique_filename: true,
+          access_mode: "public",   // Ensure public access
+          invalidate: true         // Invalidate CDN cache
         });
         
         // Mandatory verification
