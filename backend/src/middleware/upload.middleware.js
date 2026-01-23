@@ -74,7 +74,15 @@ export default () => {
           use_filename: true,
           unique_filename: true,
           access_mode: "public",   // Ensure public access
-          invalidate: true         // Invalidate CDN cache
+          invalidate: true,        // Invalidate CDN cache
+          overwrite: false,        // Don't overwrite existing files
+          discard_original_filename: false // Keep original filename info
+        });
+        
+        // Explicitly make the uploaded file public
+        await cloudinary.api.update(result.public_id, {
+          access_mode: "public",
+          resource_type: "image"
         });
         
         // Mandatory verification

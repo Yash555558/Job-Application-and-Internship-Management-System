@@ -245,13 +245,47 @@ export const downloadResume = async (req, res) => {
     const resumeUrl = application.resumeLink;
     console.log("Resume URL:", resumeUrl);
     
-    // Fetch the resume from Cloudinary with enhanced error handling
+    // Try direct fetch first, fallback to signed URL if needed
     try {
-      console.log("Attempting to fetch from Cloudinary:", resumeUrl);
-      const response = await axios.get(resumeUrl, { 
-        responseType: 'arraybuffer',
-        timeout: 10000 // 10 second timeout
-      });
+      console.log("Attempting direct fetch from Cloudinary:", resumeUrl);
+      let response;
+      
+      try {
+        // First attempt: direct public access
+        response = await axios.get(resumeUrl, { 
+          responseType: 'arraybuffer',
+          timeout: 10000 // 10 second timeout
+        });
+      } catch (directError) {
+        // If direct access fails with 401/403, try signed URL
+        if (directError.response?.status === 401 || directError.response?.status === 403) {
+          console.log("Direct access failed, generating signed URL...");
+          
+          // Generate signed URL as fallback
+          const cloudinary = (await import('cloudinary')).v2;
+          
+          // Extract public ID from URL
+          const urlParts = resumeUrl.split('/');
+          const fileName = urlParts[urlParts.length - 1].replace('.pdf', '');
+          const publicId = `resumes/${fileName}`;
+          
+          const signedUrl = cloudinary.url(publicId, {
+            resource_type: 'image',
+            format: 'pdf',
+            sign_url: true,
+            expires_at: Math.floor(Date.now() / 1000) + 3600 // 1 hour expiry
+          });
+          
+          console.log("Using signed URL:", signedUrl);
+          response = await axios.get(signedUrl, { 
+            responseType: 'arraybuffer',
+            timeout: 10000
+          });
+        } else {
+          // Re-throw if it's a different error
+          throw directError;
+        }
+      }
       
       console.log("Cloudinary response status:", response.status);
       console.log("Cloudinary response headers:", response.headers);
