@@ -2,6 +2,8 @@ import Application from "../models/Application.js";
 import Job from "../models/Job.js";
 import { sendStatusEmail } from "../utils/sendEmail.js";
 import { Parser } from "json2csv";
+import fs from "fs";
+import path from "path";
 
 /**
  * @desc   Apply to a job
@@ -227,75 +229,53 @@ export const downloadResume = async (req, res) => {
       return res.status(403).json({ message: "Access denied" });
     }
     
-    const resumeUrl = application.resumeLink;
+    const resumePath = application.resumeLink;
     
-    if (!resumeUrl) {
-      console.log("Resume URL not found");
+    if (!resumePath) {
+      console.log("Resume path not found");
       return res.status(404).json({ message: "Resume not found" });
     }
     
-    console.log("Resume URL:", resumeUrl);
-    console.log("URL contains raw/upload:", resumeUrl.includes('/raw/upload/'));
-    console.log("URL contains image/upload:", resumeUrl.includes('/image/upload/'));
+    console.log("Resume path:", resumePath);
     
-    // Test if URL is accessible
-    try {
-      const testResponse = await fetch(resumeUrl, { method: 'HEAD' });
-      console.log("URL accessibility test - Status:", testResponse.status);
-      console.log("URL accessibility test - Headers:", Object.fromEntries(testResponse.headers));
-    } catch (testError) {
-      console.log("URL accessibility test failed:", testError.message);
+    // Construct full file path
+    const fullPath = path.join(process.cwd(), resumePath);
+    
+    // Check if file exists
+    if (!fs.existsSync(fullPath)) {
+      console.log("Resume file not found at path:", fullPath);
+      return res.status(404).json({ message: "Resume file not found" });
     }
     
-    // Extract filename from URL or create one
-    // Handle both raw and image URLs
-    let fileName = 'resume.pdf';
-    if (resumeUrl.includes('/raw/upload/')) {
-      // Raw file URL - extract actual filename
-      const urlParts = resumeUrl.split('/');
-      const filePart = urlParts[urlParts.length - 1];
-      if (filePart && filePart !== 'null') {
-        fileName = filePart;
-      }
-    } else {
-      // Image/PDF URL - use original filename or default
-      const urlParts = resumeUrl.split('/');
-      const filePart = urlParts[urlParts.length - 1];
-      if (filePart && filePart !== 'null') {
-        fileName = filePart;
-      }
-    }
+    // Get file stats
+    const fileStats = fs.statSync(fullPath);
+    
+    // Extract filename from path
+    const fileName = path.basename(resumePath);
     
     console.log("Filename extracted:", fileName);
     
     // Set headers for direct download
-    // Always use application/pdf for PDF files regardless of Cloudinary storage type
     const isPdfFile = fileName.toLowerCase().endsWith('.pdf');
     const contentType = isPdfFile ? 'application/pdf' : 'application/octet-stream';
     res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
     res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Length', fileStats.size);
     res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
     
     console.log("Headers set - Content-Disposition:", `attachment; filename="${fileName}"`);
+    console.log("File size:", fileStats.size, "bytes");
     
-    // Stream the file from Cloudinary
-    console.log("Fetching from Cloudinary...");
-    const response = await fetch(resumeUrl);
+    // Stream the file from local storage
+    console.log("Streaming file from local storage...");
+    const fileStream = fs.createReadStream(fullPath);
     
-    console.log("Cloudinary response status:", response.status);
-    console.log("Cloudinary response headers:", Object.fromEntries(response.headers));
+    fileStream.on('error', (error) => {
+      console.error("File stream error:", error);
+      return res.status(500).json({ message: "Failed to stream resume file" });
+    });
     
-    if (!response.ok) {
-      console.log("Cloudinary fetch failed with status:", response.status);
-      return res.status(500).json({ message: "Failed to fetch resume from storage" });
-    }
-    
-    // Get the buffer from the response
-    const buffer = await response.arrayBuffer();
-    console.log("File size:", buffer.byteLength, "bytes");
-    
-    // Send the buffer directly
-    res.end(Buffer.from(buffer));
+    fileStream.pipe(res);
     
   } catch (error) {
     console.error("Resume download error:", error);
