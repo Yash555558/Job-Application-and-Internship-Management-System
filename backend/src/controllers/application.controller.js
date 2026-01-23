@@ -269,8 +269,9 @@ export const downloadResume = async (req, res) => {
     console.log("Filename extracted:", fileName);
     
     // Set headers for direct download
-    // For raw files, we need to ensure proper content type
-    const contentType = resumeUrl.includes('/raw/upload/') ? 'application/octet-stream' : 'application/pdf';
+    // Always use application/pdf for PDF files regardless of Cloudinary storage type
+    const isPdfFile = fileName.toLowerCase().endsWith('.pdf');
+    const contentType = isPdfFile ? 'application/pdf' : 'application/octet-stream';
     res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
     res.setHeader('Content-Type', contentType);
     res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
