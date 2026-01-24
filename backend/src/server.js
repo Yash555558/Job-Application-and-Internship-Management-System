@@ -9,10 +9,28 @@ connectDB();
 
 const app = express();
 
-app.use(cors({
-  origin: process.env.CLIENT_URL,
+// Configure CORS to handle origin with or without trailing slash
+const clientUrl = process.env.CLIENT_URL;
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // Remove trailing slash from both URLs for comparison
+    const normalizedOrigin = origin ? origin.replace(/\/$/, '') : '';
+    const normalizedClientUrl = clientUrl ? clientUrl.replace(/\/$/, '') : '';
+    
+    // Check if the origin matches the allowed client URL
+    if (normalizedOrigin === normalizedClientUrl || normalizedOrigin === clientUrl) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
-}));
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Import all routes
