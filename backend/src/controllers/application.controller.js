@@ -308,28 +308,32 @@ export const downloadResume = async (req, res) => {
     const resumeUrl = application.resumeLink;
     console.log("Resume URL:", resumeUrl);
     
-    // Generate authenticated download URL using Cloudinary API
+    // Handle Cloudinary URL directly for public access
     try {
-      console.log("Generating authenticated download URL");
+      console.log("Processing Cloudinary resume URL for direct access");
       
-      // Import Cloudinary
-      const cloudinary = (await import('cloudinary')).v2;
+      // For raw files stored with anonymous access, we can serve them directly
+      // Cloudinary URLs for raw files are publicly accessible when properly configured
       
-      // Extract public ID from URL
-      const urlParts = resumeUrl.split('/');
-      const fileName = urlParts[urlParts.length - 1].replace('.pdf', '');
-      const publicId = `resumes/${fileName}`;
+      // Validate that this is a Cloudinary URL
+      if (!resumeUrl.includes('cloudinary.com')) {
+        console.log("Invalid Cloudinary URL");
+        return res.status(400).json({ message: "Invalid resume storage URL" });
+      }
       
-      console.log("Public ID:", publicId);
+      // For raw files with anonymous access, redirect to the direct Cloudinary URL
+      console.log("Redirecting to Cloudinary URL:", resumeUrl);
       
-      // Generate authenticated download URL
-      const downloadUrl = cloudinary.url(publicId, {
-        resource_type: 'image',
-        format: 'pdf',
-        type: 'authenticated',
-        sign_url: true,
-        expires_at: Math.floor(Date.now() / 1000) + 3600 // 1 hour expiry
+      // Set appropriate headers for PDF download
+      res.set({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': 'inline; filename="resume.pdf"',
+        'Cache-Control': 'public, max-age=3600',
+        'Access-Control-Allow-Origin': '*'
       });
+      
+      // Redirect to the Cloudinary URL
+      return res.redirect(resumeUrl);
       
       console.log("Authenticated download URL:", downloadUrl);
       

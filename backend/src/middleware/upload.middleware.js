@@ -66,23 +66,22 @@ export default () => {
       }
       
       try {
-        // Upload PDF to Cloudinary with professional configuration
+        // Upload PDF to Cloudinary with proper public access configuration
         const result = await cloudinary.uploader.upload(req.file.path, {
           folder: "resumes",
-          resource_type: "image",   // MUST use image for PDF preview
-          format: "pdf",          // MUST specify PDF format
+          resource_type: "raw",     // Use raw for direct PDF access
           use_filename: true,
           unique_filename: true,
-          access_mode: "public",   // Ensure public access
-          invalidate: true,        // Invalidate CDN cache
-          overwrite: false,        // Don't overwrite existing files
+          access_mode: "anonymous", // Allow anonymous/public access
+          invalidate: true,         // Invalidate CDN cache
+          overwrite: false,         // Don't overwrite existing files
           discard_original_filename: false // Keep original filename info
         });
         
-        // Explicitly make the uploaded file public
+        // Ensure the uploaded file has public access
         await cloudinary.api.update(result.public_id, {
-          access_mode: "public",
-          resource_type: "image"
+          access_mode: "anonymous",
+          resource_type: "raw"
         });
         
         // Mandatory verification
