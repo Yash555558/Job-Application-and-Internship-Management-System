@@ -90,11 +90,16 @@ export const AuthProvider = ({ children }) => {
     delete api.defaults.headers.common['Authorization'];
   };
 
+  const updateUserProfile = (updatedData) => {
+    setUser(updatedData);
+  };
+
   const value = {
     user,
     login,
     signup,
     logout,
+    updateUserProfile,
     loading,
     token
   };
