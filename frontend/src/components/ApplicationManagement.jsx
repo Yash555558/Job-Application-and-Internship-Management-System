@@ -13,6 +13,9 @@ const ApplicationManagement = () => {
     dateFrom: '',
     dateTo: ''
   });
+  
+  // Local UI state for debounced search
+  const [searchInput, setSearchInput] = useState(filters.search);
   const [jobs, setJobs] = useState([]);
   const [pagination, setPagination] = useState({
     currentPage: 1,
@@ -26,6 +29,24 @@ const ApplicationManagement = () => {
   useEffect(() => {
     fetchData();
   }, [filters, pagination.currentPage]);
+  
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setFilters(prev => {
+        if (prev.search === searchInput) return prev;
+        return { ...prev, search: searchInput };
+      });
+      setPagination(prev => ({ ...prev, currentPage: 1 }));
+    }, 400);
+    
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+  
+  // Sync searchInput with filters.search when filters change
+  useEffect(() => {
+    setSearchInput(filters.search);
+  }, [filters.search]);
 
   useEffect(() => {
     filterApplications();
@@ -145,8 +166,8 @@ const ApplicationManagement = () => {
               type="text"
               id="search"
               name="search"
-              value={filters.search}
-              onChange={handleFilterChange}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Name, email, or skills..."
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             />
