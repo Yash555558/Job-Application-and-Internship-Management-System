@@ -91,8 +91,21 @@ const Navbar = () => {
             ) : (
               <div className="flex items-center space-x-3">
                 <div className="flex items-center space-x-3 bg-slate-50 rounded-lg px-3 py-2">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white text-sm font-semibold">
-                    {user.name.charAt(0).toUpperCase()}
+                  <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center">
+                    {user.avatar ? (
+                      <img 
+                        src={user.avatar} 
+                        alt={user.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'flex';
+                        }}
+                      />
+                    ) : null}
+                    <div className={`w-full h-full rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white text-sm font-semibold ${user.avatar ? 'hidden' : ''}`}>
+                      {user.name.charAt(0).toUpperCase()}
+                    </div>
                   </div>
                   <div className="hidden sm:block">
                     <div className="text-sm font-medium text-slate-900">{user.name}</div>
@@ -180,8 +193,21 @@ const Navbar = () => {
               
               <div className="pt-4 mt-4 border-t border-slate-200">
                 <div className="flex items-center px-3 py-3 bg-slate-50 rounded-lg mb-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white font-semibold text-sm mr-3">
-                    {user.name.charAt(0).toUpperCase()}
+                  <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center mr-3">
+                    {user.avatar ? (
+                      <img 
+                        src={user.avatar} 
+                        alt={user.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'flex';
+                        }}
+                      />
+                    ) : null}
+                    <div className={`w-full h-full rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white font-semibold text-sm ${user.avatar ? 'hidden' : ''}`}>
+                      {user.name.charAt(0).toUpperCase()}
+                    </div>
                   </div>
                   <div>
                     <div className="font-medium text-slate-900">{user.name}</div>

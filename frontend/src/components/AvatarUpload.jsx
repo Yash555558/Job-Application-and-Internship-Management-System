@@ -63,6 +63,16 @@ const AvatarUpload = ({ currentAvatar, onAvatarUpdate, onClose }) => {
         onAvatarUpdate(response.data.avatar);
       }
       
+      // Refresh user data from backend to ensure consistency
+      try {
+        const profileResponse = await api.get('/auth/profile');
+        if (onAvatarUpdate) {
+          onAvatarUpdate(profileResponse.data.user.avatar);
+        }
+      } catch (refreshError) {
+        console.warn('Failed to refresh user profile after avatar upload:', refreshError);
+      }
+      
       if (onClose) {
         onClose();
       }
@@ -85,6 +95,16 @@ const AvatarUpload = ({ currentAvatar, onAvatarUpdate, onClose }) => {
       // Update avatar in parent component
       if (onAvatarUpdate) {
         onAvatarUpdate('');
+      }
+      
+      // Refresh user data from backend to ensure consistency
+      try {
+        const profileResponse = await api.get('/auth/profile');
+        if (onAvatarUpdate) {
+          onAvatarUpdate(profileResponse.data.user.avatar || '');
+        }
+      } catch (refreshError) {
+        console.warn('Failed to refresh user profile after avatar removal:', refreshError);
       }
       
       setPreview('');
