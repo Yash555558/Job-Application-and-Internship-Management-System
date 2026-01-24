@@ -13,9 +13,9 @@ const HomePage = () => {
       // If user is logged in, show notification and redirect to their appropriate dashboard
       toast.success('You are already logged in! Redirecting to your dashboard...');
       if (user.role === 'admin') {
-        navigate('/dashboard/admin');
+        navigate('/dashboard');
       } else {
-        navigate('/dashboard/user');
+        navigate('/dashboard');
       }
     } else {
       // If user is not logged in, go to signup
