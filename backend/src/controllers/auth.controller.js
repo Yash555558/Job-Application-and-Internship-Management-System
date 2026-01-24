@@ -79,9 +79,13 @@ export const updateProfile = async (req, res) => {
     if (email) user.email = email;
     if (phone) user.phone = phone;
     
-    // Update avatar if provided in request
+    // Handle avatar updates/removals
     if (req.file && req.file.cloudinary) {
+      // New avatar uploaded
       user.avatar = req.file.cloudinary.secureUrl;
+    } else if ('avatar' in req.body) {
+      // Avatar explicitly set to empty string (removal)
+      user.avatar = req.body.avatar || '';
     }
     
     await user.save();
