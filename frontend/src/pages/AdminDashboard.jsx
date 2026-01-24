@@ -35,10 +35,13 @@ const AdminDashboard = () => {
         const appsData = applicationsResponse.data.applications || applicationsResponse.data;
         const totalAppsCount = applicationsResponse.data.pagination?.totalApplications || appsData.length;
         
+        // Fetch user count
+        const usersResponse = await api.get('/auth/users/count');
+        
         setStats({
           totalJobs: jobsResponse.data.length,
           totalApplications: totalAppsCount,
-          totalUsers: 0, // This would come from a separate endpoint if available
+          totalUsers: usersResponse.data.count,
           pendingApplications: appsData.filter(app => app.status === 'Applied').length
         });
 

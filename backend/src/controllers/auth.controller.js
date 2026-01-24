@@ -166,6 +166,20 @@ export const changePassword = async (req, res) => {
   }
 };
 
+/**
+ * @desc   Admin: Get user count
+ * @route  GET /api/auth/users/count
+ * @access Admin
+ */
+export const getUserCount = async (req, res) => {
+  try {
+    const count = await User.countDocuments();
+    res.json({ count });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;

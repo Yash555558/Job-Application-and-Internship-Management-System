@@ -1,10 +1,15 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 
 const ApplicationManagement = () => {
   const [applications, setApplications] = useState([]);
+  const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [selectedApplication, setSelectedApplication] = useState(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+
   const [filters, setFilters] = useState({
     status: '',
     jobId: '',
@@ -14,73 +19,27 @@ const ApplicationManagement = () => {
     dateTo: ''
   });
   
-  // Local UI state for debounced search
   const [searchInput, setSearchInput] = useState(filters.search);
-  
-  // Ref for debouncing
-  const debounceTimerRef = useRef(null);
-  const [jobs, setJobs] = useState([]);
-  const [pagination, setPagination] = useState({
-    currentPage: 1,
-    totalPages: 1,
-    totalApplications: 0,
-    hasNextPage: false,
-    hasPrevPage: false,
-    limit: 10
-  });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pagination, setPagination] = useState({});
 
-  useEffect(() => {
-    fetchData();
-  }, [filters, pagination.currentPage]);
-  
-  // Debounce search input
-  useEffect(() => {
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-    
-    debounceTimerRef.current = setTimeout(() => {
-      setFilters(prev => {
-        if (prev.search === searchInput) return prev;
-        return { ...prev, search: searchInput };
-      });
-      setPagination(prev => ({ ...prev, currentPage: 1 }));
-    }, 400);
-    
-    return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-    };
-  }, [searchInput]);
-  
-  // Sync searchInput with filters.search when filters change
-  useEffect(() => {
-    setSearchInput(filters.search);
-  }, [filters.search]);
-
-  const filteredApplications = useMemo(() => {
-    // With server-side filtering, we just return all applications
-    // since filtering is handled by the server via API parameters
-    return applications;
-  }, [applications]);
-
-  const fetchData = async () => {
+  // Fetch applications from the backend
+  const fetchApplications = async (page = 1, currentFilters = {}) => {
     try {
       setLoading(true);
       
       // Build query parameters
       const queryParams = new URLSearchParams({
-        page: pagination.currentPage,
-        limit: pagination.limit
+        page: page,
+        limit: 10
       });
       
-      if (filters.status) queryParams.append('status', filters.status);
-      if (filters.jobId) queryParams.append('jobId', filters.jobId);
-      if (filters.search) queryParams.append('search', filters.search);
-      if (filters.jobType) queryParams.append('jobType', filters.jobType);
-      if (filters.dateFrom) queryParams.append('dateFrom', filters.dateFrom);
-      if (filters.dateTo) queryParams.append('dateTo', filters.dateTo);
+      if (currentFilters.status) queryParams.append('status', currentFilters.status);
+      if (currentFilters.jobId) queryParams.append('jobId', currentFilters.jobId);
+      if (currentFilters.search) queryParams.append('search', currentFilters.search);
+      if (currentFilters.jobType) queryParams.append('jobType', currentFilters.jobType);
+      if (currentFilters.dateFrom) queryParams.append('dateFrom', currentFilters.dateFrom);
+      if (currentFilters.dateTo) queryParams.append('dateTo', currentFilters.dateTo);
       
       const [appsResponse, jobsResponse] = await Promise.all([
         api.get(`/applications?${queryParams.toString()}`),
@@ -95,19 +54,37 @@ const ApplicationManagement = () => {
         setPagination(appsResponse.data.pagination);
       }
       
-      setLoading(false);
+      setError('');
     } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error('Error loading data: ' + (error.response?.data?.message || 'Something went wrong'));
+      console.error('Error fetching applications:', error);
+      setError(error.response?.data?.message || 'Failed to load applications');
+      toast.error('Error loading applications: ' + (error.response?.data?.message || 'Something went wrong'));
+    } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    // Debounce search input
+    const timer = setTimeout(() => {
+      setFilters(prev => ({
+        ...prev,
+        search: searchInput
+      }));
+      setCurrentPage(1);
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  useEffect(() => {
+    fetchApplications(currentPage, filters);
+  }, [filters, currentPage]);
+
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     if (name === 'search') {
-      // For search, we use the local state for immediate feedback
-      // The global filter is updated via the debounced effect
+      // Use local state for immediate feedback
       setSearchInput(value);
       return;
     }
@@ -116,27 +93,36 @@ const ApplicationManagement = () => {
       ...prev,
       [name]: value
     }));
-    setPagination(prev => ({
-      ...prev,
-      currentPage: 1
-    }));
+    setCurrentPage(1);
   };
 
   const handleStatusChange = async (applicationId, newStatus) => {
     try {
       await api.put(`/applications/${applicationId}/status`, { status: newStatus });
+      
       // Update the application in the local state
       setApplications(prev => prev.map(app => 
         app._id === applicationId ? { ...app, status: newStatus } : app
       ));
       
-      // Only refetch if needed - update pagination data
-      fetchData();
+      toast.success('Application status updated successfully');
     } catch (error) {
       console.error('Error updating status:', error);
-      const errorMessage = error.response?.data?.message || 'Something went wrong';
-      toast.error('Error updating application status: ' + errorMessage);
+      toast.error('Error updating application status: ' + (error.response?.data?.message || 'Something went wrong'));
     }
+  };
+
+  const handleClearFilters = () => {
+    setFilters({
+      status: '',
+      jobId: '',
+      search: '',
+      jobType: '',
+      dateFrom: '',
+      dateTo: ''
+    });
+    setSearchInput('');
+    setCurrentPage(1);
   };
 
   const getStatusColor = (status) => {
@@ -154,9 +140,27 @@ const ApplicationManagement = () => {
     }
   };
 
-  if (loading) {
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const handleViewDetails = (application) => {
+    setSelectedApplication(application);
+    setShowDetailsModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowDetailsModal(false);
+    setSelectedApplication(null);
+  };
+
+  if (loading && applications.length === 0) {
     return (
-      <div className="flex justify-center items-center h-64">
+      <div className="flex items-center justify-center py-12">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
       </div>
     );
@@ -164,36 +168,30 @@ const ApplicationManagement = () => {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold text-gray-800">Application Management</h2>
-
-      {/* Filters */}
       <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">Application Management</h2>
+        
+        {/* Filters */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
           <div>
-            <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-1">
-              Search Applicants
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Search Applicants</label>
             <input
               type="text"
-              id="search"
               name="search"
               value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
+              onChange={handleFilterChange}
               placeholder="Name, email, or skills..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
           
           <div>
-            <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
-              Status
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
             <select
-              id="status"
               name="status"
               value={filters.status}
               onChange={handleFilterChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="">All Statuses</option>
               <option value="Applied">Applied</option>
@@ -204,15 +202,12 @@ const ApplicationManagement = () => {
           </div>
           
           <div>
-            <label htmlFor="jobType" className="block text-sm font-medium text-gray-700 mb-1">
-              Job Type
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Job Type</label>
             <select
-              id="jobType"
               name="jobType"
               value={filters.jobType}
               onChange={handleFilterChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="">All Types</option>
               <option value="Full-time">Full-time</option>
@@ -223,15 +218,12 @@ const ApplicationManagement = () => {
           </div>
           
           <div>
-            <label htmlFor="jobId" className="block text-sm font-medium text-gray-700 mb-1">
-              Specific Job
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Specific Job</label>
             <select
-              id="jobId"
               name="jobId"
               value={filters.jobId}
               onChange={handleFilterChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="">All Jobs</option>
               {jobs.map(job => (
@@ -239,181 +231,236 @@ const ApplicationManagement = () => {
               ))}
             </select>
           </div>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          
           <div>
-            <label htmlFor="dateFrom" className="block text-sm font-medium text-gray-700 mb-1">
-              Date From
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Date From</label>
             <input
               type="date"
-              id="dateFrom"
               name="dateFrom"
               value={filters.dateFrom}
               onChange={handleFilterChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
           
           <div>
-            <label htmlFor="dateTo" className="block text-sm font-medium text-gray-700 mb-1">
-              Date To
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Date To</label>
             <input
               type="date"
-              id="dateTo"
               name="dateTo"
               value={filters.dateTo}
               onChange={handleFilterChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
         </div>
         
-        <div className="flex justify-end space-x-3">
+        {/* Clear Filters Button */}
+        <div className="mb-6">
           <button
-            onClick={() => {
-              setFilters({ 
-                status: '', 
-                jobId: '', 
-                search: '', 
-                jobType: '', 
-                dateFrom: '', 
-                dateTo: '' 
-              });
-              setPagination(prev => ({...prev, currentPage: 1}));
-            }}
-            className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50"
+            onClick={handleClearFilters}
+            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors duration-200"
           >
             Clear All Filters
           </button>
         </div>
-      </div>
-
-      {/* Applications Table */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">
-            Applications ({filteredApplications.length})
-          </h3>
-        </div>
+        
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <div className="flex items-center">
+              <svg className="w-5 h-5 text-red-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="text-red-700">{error}</span>
+            </div>
+          </div>
+        )}
+        
+        {/* Applications Table */}
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Applicant
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Job
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Job Applied
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Cover Note
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Applied Date
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredApplications.length === 0 ? (
-                <tr>
-                  <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
-                    No applications found matching your criteria.
+              {applications.map((application) => (
+                <tr key={application._id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm font-medium text-gray-900">{application.name}</div>
+                    <div className="text-sm text-gray-500">{application.email}</div>
+                    <div className="text-sm text-gray-500">{application.phone}</div>
+                    <div className="text-sm text-gray-500">{application.education}</div>
+                    <div className="text-sm text-gray-500">Exp: {application.experience}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm font-medium text-gray-900">{application.jobId?.title}</div>
+                    <div className="text-sm text-gray-500">{application.jobId?.type}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(application.status)}`}>
+                      {application.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 max-w-xs truncate" title={application.coverNote || 'No cover note provided'}>
+                    {application.coverNote || 'No cover note provided'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {formatDate(application.appliedAt)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div className="flex flex-col space-y-2">
+                      <select
+                        value={application.status}
+                        onChange={(e) => handleStatusChange(application._id, e.target.value)}
+                        className={`w-full px-2 py-1 text-xs rounded border focus:outline-none focus:ring-1 ${
+                          application.status === 'Applied' ? 'bg-yellow-50 border-yellow-200' :
+                          application.status === 'Shortlisted' ? 'bg-blue-50 border-blue-200' :
+                          application.status === 'Selected' ? 'bg-green-50 border-green-200' :
+                          'bg-red-50 border-red-200'
+                        }`}
+                      >
+                        <option value="Applied">Applied</option>
+                        <option value="Shortlisted">Shortlisted</option>
+                        <option value="Selected">Selected</option>
+                        <option value="Rejected">Rejected</option>
+                      </select>
+                      <button
+                        onClick={() => handleViewDetails(application)}
+                        className="text-xs text-blue-600 hover:text-blue-800 underline"
+                      >
+                        View Details
+                      </button>
+                    </div>
                   </td>
                 </tr>
-              ) : (
-                filteredApplications.map(application => (
-                  <tr key={application._id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{application.name}</div>
-                      <div className="text-sm text-gray-500">{application.email}</div>
-                      <div className="text-sm text-gray-500">{application.phone}</div>
-                      <div className="text-sm text-gray-500">{application.education}</div>
-                      <div className="text-sm text-gray-500">Exp: {application.experience}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{application.jobId?.title}</div>
-                      <div className="text-sm text-gray-500">{application.jobId?.type}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(application.status)}`}>
-                        {application.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-500 max-w-xs truncate" title={application.coverNote || 'No cover note provided'}>
-                        {application.coverNote || 'No cover note provided'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(application.appliedAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex flex-col space-y-2">
-                        <select
-                          value={application.status}
-                          onChange={(e) => handleStatusChange(application._id, e.target.value)}
-                          className={`w-full px-2 py-1 text-xs rounded border focus:outline-none focus:ring-1 ${
-                            application.status === 'Applied' ? 'bg-yellow-50 border-yellow-200' :
-                            application.status === 'Shortlisted' ? 'bg-blue-50 border-blue-200' :
-                            application.status === 'Selected' ? 'bg-green-50 border-green-200' :
-                            'bg-red-50 border-red-200'
-                          }`}
-                        >
-                          <option value="Applied">Applied</option>
-                          <option value="Shortlisted">Shortlisted</option>
-                          <option value="Selected">Selected</option>
-                          <option value="Rejected">Rejected</option>
-                        </select>
-
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
+              ))}
             </tbody>
           </table>
         </div>
-        
-        {/* Pagination Controls */}
-        <div className="px-6 py-3 border-t border-gray-200 flex items-center justify-between">
-          <div className="text-sm text-gray-700">
-            Showing <span className="font-medium">{(pagination.currentPage - 1) * pagination.limit + 1}</span> to{' '}
-            <span className="font-medium">
-              {Math.min(pagination.currentPage * pagination.limit, pagination.totalApplications)}
-            </span>{' '}
-            of <span className="font-medium">{pagination.totalApplications}</span> results
+
+        {/* Pagination */}
+        {pagination.totalPages > 1 && (
+          <div className="flex items-center justify-between border-t border-gray-200 px-4 py-3 sm:px-6 mt-6">
+            <div className="flex flex-1 justify-between sm:hidden">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, pagination.totalPages || 1))}
+                disabled={currentPage === (pagination.totalPages || 1)}
+                className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+            <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm text-gray-700">
+                  Showing <span className="font-medium">{(currentPage - 1) * 10 + 1}</span> to{' '}
+                  <span className="font-medium">{Math.min(currentPage * 10, pagination.totalApplications || 0)}</span> of{' '}
+                  <span className="font-medium">{pagination.totalApplications || 0}</span> results
+                </p>
+              </div>
+              <div>
+                <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
+                  >
+                    <span className="sr-only">Previous</span>
+                    <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                  
+                  {(() => {
+                    const totalPages = pagination.totalPages || 1;
+                    let pages = [];
+                    
+                    if (totalPages <= 5) {
+                      // If total pages <= 5, show all pages
+                      pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+                    } else {
+                      // Show first page, last page, current page, and neighbors
+                      const pagesSet = new Set();
+                      
+                      // Always show first and last pages
+                      pagesSet.add(1);
+                      pagesSet.add(totalPages);
+                      
+                      // Add current page and 2 neighbors on each side
+                      for (let i = Math.max(2, currentPage - 2); i <= Math.min(totalPages - 1, currentPage + 2); i++) {
+                        pagesSet.add(i);
+                      }
+                      
+                      pages = Array.from(pagesSet).sort((a, b) => a - b);
+                    }
+                    
+                    return pages.map(pageNum => (
+                      <button
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${
+                          currentPage === pageNum
+                            ? 'z-10 bg-blue-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600'
+                            : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:outline-offset-0'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    ));
+                  })()}
+                  
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, pagination.totalPages || 1))}
+                    disabled={currentPage === (pagination.totalPages || 1)}
+                    className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
+                  >
+                    <span className="sr-only">Next</span>
+                    <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                </nav>
+              </div>
+            </div>
           </div>
-          <div className="flex space-x-2">
-            <button
-              onClick={() => setPagination(prev => ({...prev, currentPage: Math.max(1, prev.currentPage - 1)}))}
-              disabled={!pagination.hasPrevPage || loading}
-              className="px-3 py-1 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Previous
-            </button>
-            
-            <span className="px-3 py-1 border border-gray-300 rounded-md text-gray-700 bg-gray-50">
-              Page {pagination.currentPage} of {pagination.totalPages}
-            </span>
-            
-            <button
-              onClick={() => setPagination(prev => ({...prev, currentPage: Math.min(prev.totalPages, prev.currentPage + 1)}))}
-              disabled={!pagination.hasNextPage || loading}
-              className="px-3 py-1 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Next
-            </button>
+        )}
+
+        {/* Empty State */}
+        {!loading && applications.length === 0 && (
+          <div className="text-center py-12">
+            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <h3 className="mt-2 text-sm font-medium text-gray-900">No applications found</h3>
+            <p className="mt-1 text-sm text-gray-500">Try adjusting your search criteria</p>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Analytics Card */}
@@ -482,6 +529,105 @@ const ApplicationManagement = () => {
           </button>
         </div>
       </div>
+
+      {/* Application Details Modal */}
+      {showDetailsModal && selectedApplication && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-gray-900">Application Details</h3>
+              <button 
+                onClick={handleCloseModal}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500 mb-2">Applicant Information</h4>
+                  <div className="space-y-2">
+                    <p><span className="font-medium">Name:</span> {selectedApplication.name}</p>
+                    <p><span className="font-medium">Email:</span> {selectedApplication.email}</p>
+                    <p><span className="font-medium">Phone:</span> {selectedApplication.phone}</p>
+                    <p><span className="font-medium">Education:</span> {selectedApplication.education}</p>
+                    <p><span className="font-medium">Experience:</span> {selectedApplication.experience} years</p>
+                    <p><span className="font-medium">Skills:</span> {Array.isArray(selectedApplication.skills) ? selectedApplication.skills.join(', ') : selectedApplication.skills}</p>
+                  </div>
+                </div>
+                
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500 mb-2">Job Information</h4>
+                  <div className="space-y-2">
+                    <p><span className="font-medium">Job Title:</span> {selectedApplication.jobId?.title}</p>
+                    <p><span className="font-medium">Job Type:</span> {selectedApplication.jobId?.type}</p>
+                    <p><span className="font-medium">Location:</span> {selectedApplication.jobId?.location}</p>
+                    <p><span className="font-medium">Applied Date:</span> {formatDate(selectedApplication.appliedAt)}</p>
+                    <p><span className="font-medium">Current Status:</span> 
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(selectedApplication.status)}`}>
+                        {selectedApplication.status}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div>
+                <h4 className="text-sm font-medium text-gray-500 mb-2">Cover Letter</h4>
+                <p className="text-gray-700 bg-gray-50 p-3 rounded-md">
+                  {selectedApplication.coverNote || 'No cover letter provided.'}
+                </p>
+              </div>
+              
+              <div>
+                <h4 className="text-sm font-medium text-gray-500 mb-2">Status History</h4>
+                <div className="space-y-2">
+                  {(selectedApplication.statusHistory || []).map((history, index) => (
+                    <div key={index} className="flex items-center justify-between bg-gray-50 p-3 rounded-md">
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(history.status)}`}>
+                        {history.status}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {new Date(history.changedAt).toLocaleString()}
+                      </span>
+                    </div>
+                  ))}
+                  {(!selectedApplication.statusHistory || selectedApplication.statusHistory.length === 0) && (
+                    <p className="text-sm text-gray-500 italic">No status history available.</p>
+                  )}
+                </div>
+              </div>
+              
+              {selectedApplication.resumeLink && (
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500 mb-2">Resume</h4>
+                  <a 
+                    href={selectedApplication.resumeLink} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-800 underline break-all"
+                  >
+                    View Resume
+                  </a>
+                </div>
+              )}
+            </div>
+            
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-end">
+              <button
+                onClick={handleCloseModal}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
