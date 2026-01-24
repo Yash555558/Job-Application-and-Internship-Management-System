@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 import JobApplicationModal from '../components/JobApplicationModal';
 import toast from 'react-hot-toast';
@@ -8,7 +7,6 @@ import toast from 'react-hot-toast';
 const JobDetailsPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth(); // Get user from auth context
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -33,12 +31,6 @@ const JobDetailsPage = () => {
   }, [id]);
 
   const handleApplyClick = () => {
-    // Check if user is authenticated before showing modal
-    if (!user) {
-      toast.error('Please log in to apply for this position');
-      navigate('/login');
-      return;
-    }
     setShowApplicationModal(true);
   };
 
