@@ -97,15 +97,32 @@ export const getAllApplications = async (req, res) => {
     if (status) query.status = status;
     if (jobId) query.jobId = jobId;
 
-    const skip = (page - 1) * limit;
+    // Convert to numbers with defaults
+    const pageNum = Math.max(1, Number(page));
+    const limitNum = Math.min(100, Math.max(1, Number(limit))); // Cap at 100 per page max
 
+    // Get total count for pagination metadata
+    const totalCount = await Application.countDocuments(query);
+
+    // Get paginated results
     const applications = await Application.find(query)
-      .skip(skip)
-      .limit(Number(limit))
+      .skip((pageNum - 1) * limitNum)
+      .limit(limitNum)
       .populate("jobId", "title type")
       .sort({ appliedAt: -1 });
 
-    res.json(applications);
+    // Send response with pagination metadata
+    res.json({
+      applications,
+      pagination: {
+        currentPage: pageNum,
+        totalPages: Math.ceil(totalCount / limitNum),
+        totalApplications: totalCount,
+        hasNextPage: pageNum < Math.ceil(totalCount / limitNum),
+        hasPrevPage: pageNum > 1,
+        limit: limitNum
+      }
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

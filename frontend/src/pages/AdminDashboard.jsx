@@ -23,18 +23,21 @@ const AdminDashboard = () => {
         // Fetch stats and other data
         const [jobsResponse, applicationsResponse] = await Promise.all([
           api.get('/jobs/admin/all'),
-          api.get('/applications')
+          api.get('/applications?page=1&limit=100') // Get first 100 for dashboard overview
         ]);
 
         setJobs(jobsResponse.data);
-        setApplications(applicationsResponse.data);
+        setApplications(applicationsResponse.data.applications || applicationsResponse.data);
 
         // Calculate stats
+        const appsData = applicationsResponse.data.applications || applicationsResponse.data;
+        const totalAppsCount = applicationsResponse.data.pagination?.totalApplications || appsData.length;
+        
         setStats({
           totalJobs: jobsResponse.data.length,
-          totalApplications: applicationsResponse.data.length,
+          totalApplications: totalAppsCount,
           totalUsers: 0, // This would come from a separate endpoint if available
-          pendingApplications: applicationsResponse.data.filter(app => app.status === 'Applied').length
+          pendingApplications: appsData.filter(app => app.status === 'Applied').length
         });
 
         setLoading(false);

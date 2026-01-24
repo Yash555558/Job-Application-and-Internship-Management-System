@@ -10,10 +10,18 @@ const ApplicationManagement = () => {
     jobId: ''
   });
   const [jobs, setJobs] = useState([]);
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalApplications: 0,
+    hasNextPage: false,
+    hasPrevPage: false,
+    limit: 10
+  });
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [filters, pagination.currentPage]);
 
   useEffect(() => {
     filterApplications();
@@ -21,13 +29,20 @@ const ApplicationManagement = () => {
 
   const fetchData = async () => {
     try {
+      setLoading(true);
       const [appsResponse, jobsResponse] = await Promise.all([
-        api.get('/applications'),
+        api.get(`/applications?page=${pagination.currentPage}&limit=${pagination.limit}${filters.status ? '&status=' + filters.status : ''}${filters.jobId ? '&jobId=' + filters.jobId : ''}`),
         api.get('/jobs/admin/all')
       ]);
       
-      setApplications(appsResponse.data);
+      setApplications(appsResponse.data.applications || appsResponse.data);
       setJobs(jobsResponse.data);
+      
+      // Update pagination if response includes pagination metadata
+      if (appsResponse.data.pagination) {
+        setPagination(appsResponse.data.pagination);
+      }
+      
       setLoading(false);
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -37,17 +52,9 @@ const ApplicationManagement = () => {
   };
 
   const filterApplications = () => {
-    let filtered = [...applications];
-
-    if (filters.status) {
-      filtered = filtered.filter(app => app.status === filters.status);
-    }
-
-    if (filters.jobId) {
-      filtered = filtered.filter(app => app.jobId._id === filters.jobId);
-    }
-
-    return filtered;
+    // With server-side filtering, we just return all applications
+    // since filtering is handled by the server via API parameters
+    return applications;
   };
 
   const handleFilterChange = (e) => {
@@ -55,6 +62,11 @@ const ApplicationManagement = () => {
     setFilters(prev => ({
       ...prev,
       [name]: value
+    }));
+    // Reset to first page when filters change
+    setPagination(prev => ({
+      ...prev,
+      currentPage: 1
     }));
   };
 
@@ -65,6 +77,9 @@ const ApplicationManagement = () => {
       setApplications(prev => prev.map(app => 
         app._id === applicationId ? { ...app, status: newStatus } : app
       ));
+      
+      // Refresh the pagination data to reflect the change
+      fetchData();
     } catch (error) {
       console.error('Error updating status:', error);
       const errorMessage = error.response?.data?.message || 'Something went wrong';
@@ -141,7 +156,10 @@ const ApplicationManagement = () => {
           </div>
           <div className="flex items-end">
             <button
-              onClick={() => setFilters({ status: '', jobId: '' })}
+              onClick={() => {
+                setFilters({ status: '', jobId: '' });
+                setPagination(prev => ({...prev, currentPage: 1}));
+              }}
               className="w-full px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50"
             >
               Clear Filters
@@ -233,6 +251,38 @@ const ApplicationManagement = () => {
             </tbody>
           </table>
         </div>
+        
+        {/* Pagination Controls */}
+        <div className="px-6 py-3 border-t border-gray-200 flex items-center justify-between">
+          <div className="text-sm text-gray-700">
+            Showing <span className="font-medium">{(pagination.currentPage - 1) * pagination.limit + 1}</span> to{' '}
+            <span className="font-medium">
+              {Math.min(pagination.currentPage * pagination.limit, pagination.totalApplications)}
+            </span>{' '}
+            of <span className="font-medium">{pagination.totalApplications}</span> results
+          </div>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setPagination(prev => ({...prev, currentPage: Math.max(1, prev.currentPage - 1)}))}
+              disabled={!pagination.hasPrevPage || loading}
+              className="px-3 py-1 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Previous
+            </button>
+            
+            <span className="px-3 py-1 border border-gray-300 rounded-md text-gray-700 bg-gray-50">
+              Page {pagination.currentPage} of {pagination.totalPages}
+            </span>
+            
+            <button
+              onClick={() => setPagination(prev => ({...prev, currentPage: Math.min(prev.totalPages, prev.currentPage + 1)}))}
+              disabled={!pagination.hasNextPage || loading}
+              className="px-3 py-1 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Analytics Card */}
@@ -241,6 +291,7 @@ const ApplicationManagement = () => {
           <h3 className="text-lg font-medium text-gray-900 mb-4">Applications by Status</h3>
           <div className="space-y-3">
             {['Applied', 'Shortlisted', 'Selected', 'Rejected'].map(status => {
+              // Count from current page applications
               const count = applications.filter(app => app.status === status).length;
               return (
                 <div key={status} className="flex justify-between items-center">
@@ -258,6 +309,7 @@ const ApplicationManagement = () => {
           <h3 className="text-lg font-medium text-gray-900 mb-4">Top Applied Jobs</h3>
           <div className="space-y-3">
             {jobs.slice(0, 5).map(job => {
+              // Count from current page applications
               const count = applications.filter(app => app.jobId?._id === job._id).length;
               if (count === 0) return null;
               return (
