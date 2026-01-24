@@ -201,12 +201,18 @@ const JobDetailsPage = () => {
           onClose={() => {
             setShowApplicationModal(false);
           }}
-          onSubmit={async (jobId, coverNote, resumeFile) => {
+          onSubmit={async (jobId, applicationData) => {
             try {
               const formData = new FormData();
               formData.append('jobId', jobId);
-              formData.append('coverNote', coverNote);
-              formData.append('resume', resumeFile);
+              formData.append('name', applicationData.name);
+              formData.append('email', applicationData.email);
+              formData.append('phone', applicationData.phone);
+              formData.append('education', applicationData.education);
+              formData.append('experience', applicationData.experience);
+              formData.append('skills', applicationData.skills);
+              formData.append('coverNote', applicationData.coverNote);
+              formData.append('resume', applicationData.resume);
 
               await api.post('/applications', formData, {
                 headers: {
@@ -214,13 +220,10 @@ const JobDetailsPage = () => {
                 },
               });
               
-              toast.success('Application submitted successfully!');
               setShowApplicationModal(false);
             } catch (error) {
               console.error('Error submitting application:', error);
-              const errorMessage = error.response?.data?.message || 'Failed to submit application';
-              toast.error(errorMessage);
-              throw new Error(errorMessage);
+              throw error;
             }
           }}
         />

@@ -13,7 +13,8 @@ export const getJobs = async (req, res) => {
     let query = { isActive: true };
 
     if (type) {
-      query.type = type;
+      // Case-insensitive job type filtering
+      query.type = new RegExp(`^${type}$`, 'i');
     }
 
     if (location) {
@@ -21,17 +22,36 @@ export const getJobs = async (req, res) => {
     }
 
     if (search) {
-      query.title = new RegExp(search, "i");
+      // Search in both title and description
+      query.$or = [
+        { title: new RegExp(search, "i") },
+        { description: new RegExp(search, "i") }
+      ];
     }
 
     const skip = (page - 1) * limit;
 
+    // Get total count for pagination
+    const totalJobs = await Job.countDocuments(query);
+    
     const jobs = await Job.find(query)
       .skip(skip)
       .limit(Number(limit))
       .sort({ createdAt: -1 });
-
-    res.json(jobs);
+    
+    const totalPages = Math.ceil(totalJobs / limit);
+    
+    res.json({
+      jobs,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages,
+        totalJobs,
+        hasNextPage: parseInt(page) < totalPages,
+        hasPrevPage: parseInt(page) > 1,
+        limit: parseInt(limit)
+      }
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

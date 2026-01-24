@@ -7,6 +7,7 @@ import {
   deleteJob,
   adminGetAllJobs
 } from "../controllers/job.controller.js";
+import { seedJobs } from "../controllers/seed.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 import adminOnly from "../middleware/role.middleware.js";
 
@@ -19,6 +20,7 @@ router.get("/:id", getJobById);
 /* Admin routes */
 router.get("/admin/all", authMiddleware, adminOnly, adminGetAllJobs);
 router.post("/", authMiddleware, adminOnly, createJob);
+router.post("/seed", authMiddleware, adminOnly, seedJobs);
 router.put("/:id", authMiddleware, adminOnly, updateJob);
 router.delete("/:id", authMiddleware, adminOnly, deleteJob);
 
