@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 import JobManagement from '../components/JobManagement';
 import ApplicationManagement from '../components/ApplicationManagement';
+import AnalyticsDashboard from '../components/AnalyticsDashboard';
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -158,6 +159,16 @@ const AdminDashboard = () => {
             >
               Application Management
             </button>
+            <button
+              onClick={() => setActiveTab('analytics')}
+              className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'analytics'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Analytics
+            </button>
           </nav>
         </div>
 
@@ -270,7 +281,10 @@ const AdminDashboard = () => {
                   </div>
                 </button>
                 
-                <button className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow duration-300 flex items-center justify-center">
+                <button 
+                  onClick={() => setActiveTab('analytics')}
+                  className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow duration-300 flex items-center justify-center"
+                >
                   <div className="flex items-center">
                     <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
                       <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -294,6 +308,10 @@ const AdminDashboard = () => {
 
         {activeTab === 'applications' && (
           <ApplicationManagement />
+        )}
+        
+        {activeTab === 'analytics' && (
+          <AnalyticsDashboard />
         )}
       </div>
     </div>
