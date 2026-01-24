@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
+import ChangePassword from '../components/ChangePassword';
 
 const Profile = () => {
   const { user: currentUser, logout, updateUserProfile: updateAuthUserProfile } = useAuth();
@@ -14,6 +15,7 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [showChangePassword, setShowChangePassword] = useState(false);
 
   useEffect(() => {
     if (currentUser) {
@@ -217,12 +219,19 @@ const Profile = () => {
                       <p className="text-gray-900 capitalize">{user.role || 'user'}</p>
                     </div>
 
-                    <div className="pt-4">
+                    <div className="pt-4 space-y-3">
                       <button
                         onClick={handleEditToggle}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
                       >
                         Edit Profile
+                      </button>
+                      
+                      <button
+                        onClick={() => setShowChangePassword(true)}
+                        className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 w-full"
+                      >
+                        Change Password
                       </button>
                     </div>
                   </div>
@@ -232,6 +241,11 @@ const Profile = () => {
           </div>
         </div>
       </div>
+      
+      {/* Change Password Modal */}
+      {showChangePassword && (
+        <ChangePassword onClose={() => setShowChangePassword(false)} />
+      )}
     </div>
   );
 };
