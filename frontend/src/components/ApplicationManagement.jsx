@@ -154,12 +154,6 @@ const ApplicationManagement = () => {
     }
   };
 
-  const filteredApplications = useMemo(() => {
-    // With server-side filtering, we just return all applications
-    // since filtering is handled by the server via API parameters
-    return applications;
-  }, [applications]);
-
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
