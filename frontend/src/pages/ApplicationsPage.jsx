@@ -115,7 +115,7 @@ const ApplicationsPage = () => {
                         <div className="text-sm text-gray-500">{application.jobId?.type}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-500">N/A</div>
+                        <div className="text-sm text-gray-500">{application.jobId?.location || 'N/A'}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(application.status)}`}>

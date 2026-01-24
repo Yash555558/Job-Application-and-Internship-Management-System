@@ -7,7 +7,6 @@ export default function JobsFilterBar({ onFilterChange }) {
 
   const timeoutRef = useRef();
 
-  // Debounce filter changes
   useEffect(() => {
     clearTimeout(timeoutRef.current);
     timeoutRef.current = setTimeout(() => {

@@ -45,6 +45,7 @@ const JobsPage = () => {
     }
   }, [limit]);
 
+  // Reset page when filters change
   const prevFiltersRef = useRef(filters);
 
   useEffect(() => {
@@ -76,8 +77,6 @@ const JobsPage = () => {
 
         <JobsFilterBar onFilterChange={setFilters} />
 
-
-
         {/* JOB LIST */}
         <div className="relative space-y-6 mt-8">
           {jobs.length === 0 ? (
@@ -90,98 +89,91 @@ const JobsPage = () => {
               </p>
             </div>
           ) : (
-            jobs.map(job => {
-              // ✅ BULLETPROOF APPLIED CHECK (ONLY FIX)
-              const isApplied =
-                job.hasApplied === true ||
-                job.applied === true ||
-                job.isApplied === true;
-
-              return (
-                <div
-                  key={job._id}
-                  className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-300"
-                >
-                  <div className="p-6">
-                    <div className="flex flex-col lg:flex-row lg:justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex flex-wrap items-center gap-3 mb-3">
-                          <h3 className="text-xl font-semibold text-gray-900">
-                            <Link
-                              to={`/jobs/${job._id}`}
-                              className="hover:text-blue-600"
-                            >
-                              {job.title}
-                            </Link>
-                          </h3>
-
-                          <span
-                            className={`px-3 py-1 text-xs font-medium rounded-full ${
-                              job.type === 'Internship'
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-blue-100 text-blue-800'
-                            }`}
-                          >
-                            {job.type}
-                          </span>
-
-                          <span
-                            className={`px-3 py-1 text-xs font-medium rounded-full ${
-                              job.isActive
-                                ? 'bg-emerald-100 text-emerald-800'
-                                : 'bg-red-100 text-red-800'
-                            }`}
-                          >
-                            {job.isActive ? 'Active' : 'Closed'}
-                          </span>
-
-                          {isApplied && (
-                            <span className="px-3 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
-                              Applied
-                            </span>
-                          )}
-                        </div>
-
-                        <p className="text-gray-700 mb-4 line-clamp-2">
-                          {job.description}
-                        </p>
-
-                        <div className="text-gray-600 text-sm">
-                          📍 {job.location}
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col gap-3 min-w-[180px]">
-                        <Link
-                          to={`/jobs/${job._id}`}
-                          className="px-4 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition text-center"
-                        >
-                          View Details
-                        </Link>
-
-                        {!isApplied && job.isActive && (
+            jobs.map(job => (
+              <div
+                key={job._id}
+                className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-300"
+              >
+                <div className="p-6">
+                  <div className="flex flex-col lg:flex-row lg:justify-between gap-4">
+                    <div className="flex-1">
+                      {/* TITLE + BADGES */}
+                      <div className="flex flex-wrap items-center gap-3 mb-3">
+                        <h3 className="text-xl font-semibold text-gray-900">
                           <Link
                             to={`/jobs/${job._id}`}
-                            className="px-4 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition text-center"
+                            className="hover:text-blue-600"
                           >
-                            Apply Now
+                            {job.title}
                           </Link>
-                        )}
+                        </h3>
 
-                        {isApplied && (
-                          <button
-                            disabled
-                            className="px-4 py-2.5 border border-gray-200 text-gray-500 font-medium rounded-lg bg-gray-100 cursor-not-allowed"
-                          >
+                        <span
+                          className={`px-3 py-1 text-xs font-medium rounded-full ${
+                            job.type === 'Internship'
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-blue-100 text-blue-800'
+                          }`}
+                        >
+                          {job.type}
+                        </span>
+
+                        <span
+                          className={`px-3 py-1 text-xs font-medium rounded-full ${
+                            job.isActive
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : 'bg-red-100 text-red-800'
+                          }`}
+                        >
+                          {job.isActive ? 'Active' : 'Closed'}
+                        </span>
+
+                        {job.hasApplied && (
+                          <span className="px-3 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
                             Applied
-                          </button>
+                          </span>
                         )}
                       </div>
+
+                      <p className="text-gray-700 mb-4 line-clamp-2">
+                        {job.description}
+                      </p>
+
+                      <div className="text-gray-600 text-sm">
+                        📍 {job.location}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-3 min-w-[180px]">
+                      <Link
+                        to={`/jobs/${job._id}`}
+                        className="px-4 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition text-center"
+                      >
+                        View Details
+                      </Link>
+
+                      {!job.hasApplied && job.isActive && (
+                        <Link
+                          to={`/jobs/${job._id}`}
+                          className="px-4 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition text-center"
+                        >
+                          Apply Now
+                        </Link>
+                      )}
+
+                      {job.hasApplied && (
+                        <button
+                          disabled
+                          className="px-4 py-2.5 border border-gray-200 text-gray-400 font-medium rounded-lg cursor-not-allowed"
+                        >
+                          Already Applied
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
-              );
-            })
+              </div>
+            ))
           )}
         </div>
 

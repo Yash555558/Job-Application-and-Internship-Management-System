@@ -101,7 +101,15 @@ const JobApplicationModal = ({ job, isOpen, onClose, onSubmit }) => {
   };
 
   const handleClose = () => {
-    setCoverNote('');
+    setFormData({
+      name: '',
+      email: '',
+      phone: '',
+      coverNote: '',
+      education: '',
+      experience: '',
+      skills: ''
+    });
     setResume(null);
     setErrors({});
     onClose();

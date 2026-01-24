@@ -13,6 +13,7 @@ export const getJobs = async (req, res) => {
     let query = { isActive: true };
 
     if (type) {
+      // Case-insensitive job type filtering
       query.type = new RegExp(`^${type}$`, 'i');
     }
 
@@ -21,6 +22,7 @@ export const getJobs = async (req, res) => {
     }
 
     if (search) {
+      // Search in both title and description
       query.$or = [
         { title: new RegExp(search, "i") },
         { description: new RegExp(search, "i") }

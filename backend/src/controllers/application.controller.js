@@ -18,6 +18,11 @@ export const applyToJob = async (req, res) => {
 
     const { jobId, name, email, phone, coverNote, education, experience, skills } = req.body;
 
+    // Validate required fields
+    if (!jobId || !name || !email || !phone || !education || !experience) {
+      return res.status(400).json({ message: "All required fields (jobId, name, email, phone, education, experience) must be provided" });
+    }
+
     if (!req.file) {
       return res.status(400).json({ message: "Resume file is required" });
     }
