@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import toast from 'react-hot-toast';
 
 const HomePage = () => {
   const { user } = useAuth();
@@ -9,7 +10,8 @@ const HomePage = () => {
   const handleCreateAccountClick = (e) => {
     e.preventDefault(); // Prevent default Link behavior
     if (user) {
-      // If user is logged in, redirect to their appropriate dashboard
+      // If user is logged in, show notification and redirect to their appropriate dashboard
+      toast.success('You are already logged in! Redirecting to your dashboard...');
       if (user.role === 'admin') {
         navigate('/dashboard/admin');
       } else {
