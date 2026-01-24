@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 
@@ -16,6 +16,9 @@ const ApplicationManagement = () => {
   
   // Local UI state for debounced search
   const [searchInput, setSearchInput] = useState(filters.search);
+  
+  // Ref for debouncing
+  const debounceTimerRef = useRef(null);
   const [jobs, setJobs] = useState([]);
   const [pagination, setPagination] = useState({
     currentPage: 1,
@@ -32,7 +35,11 @@ const ApplicationManagement = () => {
   
   // Debounce search input
   useEffect(() => {
-    const timer = setTimeout(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    
+    debounceTimerRef.current = setTimeout(() => {
       setFilters(prev => {
         if (prev.search === searchInput) return prev;
         return { ...prev, search: searchInput };
@@ -40,7 +47,11 @@ const ApplicationManagement = () => {
       setPagination(prev => ({ ...prev, currentPage: 1 }));
     }, 400);
     
-    return () => clearTimeout(timer);
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
   }, [searchInput]);
   
   // Sync searchInput with filters.search when filters change
@@ -48,9 +59,11 @@ const ApplicationManagement = () => {
     setSearchInput(filters.search);
   }, [filters.search]);
 
-  useEffect(() => {
-    filterApplications();
-  }, [applications, filters]);
+  const filteredApplications = useMemo(() => {
+    // With server-side filtering, we just return all applications
+    // since filtering is handled by the server via API parameters
+    return applications;
+  }, [applications]);
 
   const fetchData = async () => {
     try {
@@ -90,19 +103,19 @@ const ApplicationManagement = () => {
     }
   };
 
-  const filterApplications = () => {
-    // With server-side filtering, we just return all applications
-    // since filtering is handled by the server via API parameters
-    return applications;
-  };
-
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
+    if (name === 'search') {
+      // For search, we use the local state for immediate feedback
+      // The global filter is updated via the debounced effect
+      setSearchInput(value);
+      return;
+    }
+    
     setFilters(prev => ({
       ...prev,
       [name]: value
     }));
-    // Reset to first page when filters change
     setPagination(prev => ({
       ...prev,
       currentPage: 1
@@ -117,7 +130,7 @@ const ApplicationManagement = () => {
         app._id === applicationId ? { ...app, status: newStatus } : app
       ));
       
-      // Refresh the pagination data to reflect the change
+      // Only refetch if needed - update pagination data
       fetchData();
     } catch (error) {
       console.error('Error updating status:', error);
@@ -141,7 +154,11 @@ const ApplicationManagement = () => {
     }
   };
 
-  const filteredApplications = filterApplications();
+  const filteredApplications = useMemo(() => {
+    // With server-side filtering, we just return all applications
+    // since filtering is handled by the server via API parameters
+    return applications;
+  }, [applications]);
 
   if (loading) {
     return (
