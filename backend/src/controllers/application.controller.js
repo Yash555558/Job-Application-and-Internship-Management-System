@@ -90,12 +90,38 @@ export const getMyApplications = async (req, res) => {
  */
 export const getAllApplications = async (req, res) => {
   try {
-    const { status, jobId, page = 1, limit = 10 } = req.query;
+    const { status, jobId, search, jobType, dateFrom, dateTo, page = 1, limit = 10 } = req.query;
 
     let query = {};
 
+    // Status filter
     if (status) query.status = status;
+    
+    // Job ID filter
     if (jobId) query.jobId = jobId;
+    
+    // Search filter (across name, email, and skills)
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { skills: { $regex: search, $options: 'i' } }
+      ];
+    }
+    
+    // Job type filter (requires joining with jobs collection)
+    if (jobType) {
+      const jobsOfType = await Job.find({ type: jobType }).select('_id');
+      const jobIds = jobsOfType.map(job => job._id);
+      query.jobId = { $in: jobIds };
+    }
+    
+    // Date range filter
+    if (dateFrom || dateTo) {
+      query.appliedAt = {};
+      if (dateFrom) query.appliedAt.$gte = new Date(dateFrom);
+      if (dateTo) query.appliedAt.$lte = new Date(dateTo);
+    }
 
     // Convert to numbers with defaults
     const pageNum = Math.max(1, Number(page));
@@ -108,7 +134,8 @@ export const getAllApplications = async (req, res) => {
     const applications = await Application.find(query)
       .skip((pageNum - 1) * limitNum)
       .limit(limitNum)
-      .populate("jobId", "title type")
+      .populate("userId", "name email avatar")
+      .populate("jobId", "title type location")
       .sort({ appliedAt: -1 });
 
     // Send response with pagination metadata

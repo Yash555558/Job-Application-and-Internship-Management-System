@@ -7,7 +7,11 @@ const ApplicationManagement = () => {
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
     status: '',
-    jobId: ''
+    jobId: '',
+    search: '',
+    jobType: '',
+    dateFrom: '',
+    dateTo: ''
   });
   const [jobs, setJobs] = useState([]);
   const [pagination, setPagination] = useState({
@@ -30,8 +34,22 @@ const ApplicationManagement = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
+      
+      // Build query parameters
+      const queryParams = new URLSearchParams({
+        page: pagination.currentPage,
+        limit: pagination.limit
+      });
+      
+      if (filters.status) queryParams.append('status', filters.status);
+      if (filters.jobId) queryParams.append('jobId', filters.jobId);
+      if (filters.search) queryParams.append('search', filters.search);
+      if (filters.jobType) queryParams.append('jobType', filters.jobType);
+      if (filters.dateFrom) queryParams.append('dateFrom', filters.dateFrom);
+      if (filters.dateTo) queryParams.append('dateTo', filters.dateTo);
+      
       const [appsResponse, jobsResponse] = await Promise.all([
-        api.get(`/applications?page=${pagination.currentPage}&limit=${pagination.limit}${filters.status ? '&status=' + filters.status : ''}${filters.jobId ? '&jobId=' + filters.jobId : ''}`),
+        api.get(`/applications?${queryParams.toString()}`),
         api.get('/jobs/admin/all')
       ]);
       
@@ -118,7 +136,22 @@ const ApplicationManagement = () => {
 
       {/* Filters */}
       <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          <div>
+            <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-1">
+              Search Applicants
+            </label>
+            <input
+              type="text"
+              id="search"
+              name="search"
+              value={filters.search}
+              onChange={handleFilterChange}
+              placeholder="Name, email, or skills..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          
           <div>
             <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
               Status
@@ -137,9 +170,29 @@ const ApplicationManagement = () => {
               <option value="Rejected">Rejected</option>
             </select>
           </div>
+          
+          <div>
+            <label htmlFor="jobType" className="block text-sm font-medium text-gray-700 mb-1">
+              Job Type
+            </label>
+            <select
+              id="jobType"
+              name="jobType"
+              value={filters.jobType}
+              onChange={handleFilterChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">All Types</option>
+              <option value="Full-time">Full-time</option>
+              <option value="Part-time">Part-time</option>
+              <option value="Contract">Contract</option>
+              <option value="Internship">Internship</option>
+            </select>
+          </div>
+          
           <div>
             <label htmlFor="jobId" className="block text-sm font-medium text-gray-700 mb-1">
-              Job
+              Specific Job
             </label>
             <select
               id="jobId"
@@ -154,17 +207,55 @@ const ApplicationManagement = () => {
               ))}
             </select>
           </div>
-          <div className="flex items-end">
-            <button
-              onClick={() => {
-                setFilters({ status: '', jobId: '' });
-                setPagination(prev => ({...prev, currentPage: 1}));
-              }}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50"
-            >
-              Clear Filters
-            </button>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label htmlFor="dateFrom" className="block text-sm font-medium text-gray-700 mb-1">
+              Date From
+            </label>
+            <input
+              type="date"
+              id="dateFrom"
+              name="dateFrom"
+              value={filters.dateFrom}
+              onChange={handleFilterChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            />
           </div>
+          
+          <div>
+            <label htmlFor="dateTo" className="block text-sm font-medium text-gray-700 mb-1">
+              Date To
+            </label>
+            <input
+              type="date"
+              id="dateTo"
+              name="dateTo"
+              value={filters.dateTo}
+              onChange={handleFilterChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+        </div>
+        
+        <div className="flex justify-end space-x-3">
+          <button
+            onClick={() => {
+              setFilters({ 
+                status: '', 
+                jobId: '', 
+                search: '', 
+                jobType: '', 
+                dateFrom: '', 
+                dateTo: '' 
+              });
+              setPagination(prev => ({...prev, currentPage: 1}));
+            }}
+            className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50"
+          >
+            Clear All Filters
+          </button>
         </div>
       </div>
 
