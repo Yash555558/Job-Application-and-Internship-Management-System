@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 import ChangePassword from '../components/ChangePassword';
+import AvatarUpload from '../components/AvatarUpload';
 
 const Profile = () => {
   const { user: currentUser, logout, updateUserProfile: updateAuthUserProfile } = useAuth();
@@ -16,6 +17,7 @@ const Profile = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const [showAvatarUpload, setShowAvatarUpload] = useState(false);
 
   useEffect(() => {
     if (currentUser) {
@@ -112,10 +114,29 @@ const Profile = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="md:col-span-1">
                 <div className="bg-gray-100 rounded-lg p-6 text-center">
-                  <div className="w-24 h-24 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-2xl font-bold text-white">
-                      {user.name?.charAt(0)?.toUpperCase() || 'U'}
-                    </span>
+                  <div className="relative inline-block mb-4">
+                    <div className="w-24 h-24 rounded-full bg-blue-500 flex items-center justify-center mx-auto overflow-hidden border-4 border-white shadow-lg">
+                      {user.avatar ? (
+                        <img 
+                          src={user.avatar} 
+                          alt="Profile" 
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-2xl font-bold text-white">
+                          {user.name?.charAt(0)?.toUpperCase() || 'U'}
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => setShowAvatarUpload(true)}
+                      className="absolute bottom-0 right-0 bg-blue-600 text-white rounded-full p-2 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-md transition-colors"
+                      title="Change avatar"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                    </button>
                   </div>
                   <h3 className="text-xl font-semibold">{user.name || 'User'}</h3>
                   <p className="text-gray-600 mt-1">{user.email}</p>
@@ -245,6 +266,18 @@ const Profile = () => {
       {/* Change Password Modal */}
       {showChangePassword && (
         <ChangePassword onClose={() => setShowChangePassword(false)} />
+      )}
+      
+      {/* Avatar Upload Modal */}
+      {showAvatarUpload && (
+        <AvatarUpload 
+          currentAvatar={user.avatar}
+          onAvatarUpdate={(newAvatar) => {
+            setUser(prev => ({ ...prev, avatar: newAvatar }));
+            updateAuthUserProfile({ ...user, avatar: newAvatar });
+          }}
+          onClose={() => setShowAvatarUpload(false)}
+        />
       )}
     </div>
   );

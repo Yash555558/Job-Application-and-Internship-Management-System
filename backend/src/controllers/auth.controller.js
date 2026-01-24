@@ -45,6 +45,8 @@ export const getProfile = async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
+        phone: user.phone,
+        avatar: user.avatar,
         role: user.role
       }
     });
@@ -76,6 +78,11 @@ export const updateProfile = async (req, res) => {
     if (email) user.email = email;
     if (phone) user.phone = phone;
     
+    // Update avatar if provided in request
+    if (req.file && req.file.cloudinary) {
+      user.avatar = req.file.cloudinary.secureUrl;
+    }
+    
     await user.save();
     
     res.json({
@@ -84,8 +91,35 @@ export const updateProfile = async (req, res) => {
         name: user.name,
         email: user.email,
         phone: user.phone,
+        avatar: user.avatar,
         role: user.role
       }
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const uploadAvatar = async (req, res) => {
+  try {
+    // Check if file was uploaded
+    if (!req.file || !req.file.cloudinary) {
+      return res.status(400).json({ message: 'Avatar file is required' });
+    }
+    
+    // Find user
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    // Update avatar
+    user.avatar = req.file.cloudinary.secureUrl;
+    await user.save();
+    
+    res.json({ 
+      message: 'Avatar uploaded successfully',
+      avatar: user.avatar
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
