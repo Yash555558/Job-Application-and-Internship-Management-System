@@ -1,7 +1,26 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 const HomePage = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  
+  const handleCreateAccountClick = (e) => {
+    e.preventDefault(); // Prevent default Link behavior
+    if (user) {
+      // If user is logged in, redirect to their appropriate dashboard
+      if (user.role === 'admin') {
+        navigate('/dashboard/admin');
+      } else {
+        navigate('/dashboard/user');
+      }
+    } else {
+      // If user is not logged in, go to signup
+      navigate('/signup');
+    }
+  };
+  
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
@@ -48,12 +67,12 @@ const HomePage = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                   </svg>
                 </Link>
-                <Link
-                  to="/signup"
-                  className="px-8 py-4 bg-white/10 backdrop-blur-sm text-white font-semibold rounded-xl border-2 border-white/30 hover:bg-white/20 hover:border-white/50 transition-all duration-300"
+                <button
+                  onClick={handleCreateAccountClick}
+                  className="px-8 py-4 bg-white/10 backdrop-blur-sm text-white font-semibold rounded-xl border-2 border-white/30 hover:bg-white/20 hover:border-white/50 transition-all duration-300 w-full sm:w-auto"
                 >
                   Create Free Account
-                </Link>
+                </button>
               </div>
               
               <div className="flex flex-wrap gap-4 pt-4">
@@ -341,15 +360,15 @@ const HomePage = () => {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center max-w-md mx-auto">
-              <Link
-                to="/signup"
+              <button
+                onClick={handleCreateAccountClick}
                 className="group relative w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center"
               >
                 <span>Start Exploring</span>
                 <svg className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
-              </Link>
+              </button>
               <Link
                 to="/jobs"
                 className="w-full sm:w-auto px-8 py-4 bg-white/10 backdrop-blur-sm text-white font-semibold rounded-xl border-2 border-white/30 hover:bg-white/20 hover:border-white/50 transition-all duration-300 flex items-center justify-center"
