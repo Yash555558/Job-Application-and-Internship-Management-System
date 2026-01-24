@@ -189,6 +189,9 @@ const ApplicationManagement = () => {
                   Status
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Cover Note
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Applied Date
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -199,7 +202,7 @@ const ApplicationManagement = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredApplications.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="px-6 py-4 text-center text-gray-500">
+                  <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
                     No applications found matching your criteria.
                   </td>
                 </tr>
@@ -221,6 +224,11 @@ const ApplicationManagement = () => {
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(application.status)}`}>
                         {application.status}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-500 max-w-xs truncate" title={application.coverNote || 'No cover note provided'}>
+                        {application.coverNote || 'No cover note provided'}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {new Date(application.appliedAt).toLocaleDateString()}
