@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import User from "../models/User.js";
 import generateToken from "../utils/generateToken.js";
+import mongoose from "mongoose";
 
 export const signup = async (req, res) => {
   try {
@@ -184,6 +185,96 @@ export const login = async (req, res) => {
         name: user.name,
         role: user.role
       }
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+/**
+ * @desc   Admin: Get all users
+ * @route  GET /api/auth/users
+ * @access Admin
+ */
+export const getAllUsers = async (req, res) => {
+  try {
+    const { page = 1, limit = 10, search = '' } = req.query;
+    const skip = (page - 1) * limit;
+    
+    // Build search query
+    let query = {};
+    if (search) {
+      query = {
+        $or: [
+          { name: { $regex: search, $options: 'i' } },
+          { email: { $regex: search, $options: 'i' } }
+        ]
+      };
+    }
+    
+    const users = await User.find(query)
+      .select('-passwordHash')
+      .skip(skip)
+      .limit(Number(limit))
+      .sort({ createdAt: -1 });
+    
+    const totalUsers = await User.countDocuments(query);
+    
+    res.json({
+      users,
+      pagination: {
+        currentPage: Number(page),
+        totalPages: Math.ceil(totalUsers / limit),
+        totalUsers,
+        hasNextPage: skip + users.length < totalUsers,
+        hasPrevPage: page > 1
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+/**
+ * @desc   Admin: Update user role
+ * @route  PUT /api/auth/users/:id/role
+ * @access Admin
+ */
+export const updateUserRole = async (req, res) => {
+  try {
+    const { role } = req.body;
+    const { id } = req.params;
+    
+    // Validate role
+    if (!['user', 'admin'].includes(role)) {
+      return res.status(400).json({ message: 'Invalid role. Must be user or admin' });
+    }
+    
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    // Prevent removing admin role from the last admin
+    if (user.role === 'admin' && role !== 'admin') {
+      const adminCount = await User.countDocuments({ role: 'admin' });
+      if (adminCount <= 1) {
+        return res.status(400).json({ message: 'Cannot remove admin role from the last administrator' });
+      }
+    }
+    
+    user.role = role;
+    await user.save();
+    
+    res.json({
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        createdAt: user.createdAt
+      },
+      message: `User role updated to ${role}`
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

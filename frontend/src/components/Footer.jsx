@@ -46,7 +46,7 @@ const Footer = () => {
               <li><a href="#" className="text-slate-400 hover:text-white transition-colors duration-200">Job Management</a></li>
               <li><a href="#" className="text-slate-400 hover:text-white transition-colors duration-200">Application Review</a></li>
               <li><a href="#" className="text-slate-400 hover:text-white transition-colors duration-200">Analytics Dashboard</a></li>
-              <li><a href="#" className="text-slate-400 hover:text-white transition-colors duration-200">User Management</a></li>
+              <li><a href="/admin#users" className="text-slate-400 hover:text-white transition-colors duration-200">User Management</a></li>
             </ul>
           </div>
           

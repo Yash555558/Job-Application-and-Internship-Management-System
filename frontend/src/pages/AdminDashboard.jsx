@@ -4,6 +4,7 @@ import api from '../services/api';
 import JobManagement from '../components/JobManagement';
 import ApplicationManagement from '../components/ApplicationManagement';
 import AnalyticsDashboard from '../components/AnalyticsDashboard';
+import UserManagement from '../components/UserManagement';
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -169,6 +170,16 @@ const AdminDashboard = () => {
             >
               Analytics
             </button>
+            <button
+              onClick={() => setActiveTab('users')}
+              className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'users'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              User Management
+            </button>
           </nav>
         </div>
 
@@ -312,6 +323,10 @@ const AdminDashboard = () => {
         
         {activeTab === 'analytics' && (
           <AnalyticsDashboard />
+        )}
+        
+        {activeTab === 'users' && (
+          <UserManagement />
         )}
       </div>
     </div>
