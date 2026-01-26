@@ -27,11 +27,11 @@ export const applyToJob = async (req, res) => {
       return res.status(400).json({ message: "Resume file is required" });
     }
 
-    // Validate required fields
-    if (!name || !email || !phone || !education || !experience) {
-      return res.status(400).json({ message: "All required fields (name, email, phone, education, experience) must be provided" });
+    // Check if Cloudinary upload was successful
+    if (!req.file.cloudinary || !req.file.cloudinary.secureUrl) {
+      return res.status(500).json({ message: "Failed to upload resume to Cloudinary" });
     }
-
+    
     const resumeLink = req.file.cloudinary.secureUrl;
 
     const job = await Job.findById(jobId);
