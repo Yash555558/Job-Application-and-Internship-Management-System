@@ -27,12 +27,17 @@ export const applyToJob = async (req, res) => {
       return res.status(400).json({ message: "Resume file is required" });
     }
 
+    console.log("File object:", req.file);
+    
     // Check if Cloudinary upload was successful
     if (!req.file.cloudinary || !req.file.cloudinary.secureUrl) {
+      console.log("Cloudinary upload failed or missing secureUrl");
+      console.log("req.file.cloudinary:", req.file.cloudinary);
       return res.status(500).json({ message: "Failed to upload resume to Cloudinary" });
     }
     
     const resumeLink = req.file.cloudinary.secureUrl;
+    console.log("Resume link set to:", resumeLink);
 
     const job = await Job.findById(jobId);
     if (!job || !job.isActive) {
@@ -56,12 +61,13 @@ export const applyToJob = async (req, res) => {
     res.status(201).json(application);
   } catch (error) {
     console.error("APPLY ERROR:", error);
+    console.error("Error stack:", error.stack);
 
     if (error.code === 11000) {
       return res.status(400).json({ message: "Already applied to this job" });
     }
 
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: error.message || "Internal server error" });
   }
 };
 
