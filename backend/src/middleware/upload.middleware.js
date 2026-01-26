@@ -72,7 +72,7 @@ export default () => {
           resource_type: "raw",     // Use raw for direct PDF access
           use_filename: true,
           unique_filename: true,
-          access_mode: "anonymous", // Allow anonymous/public access
+          access_mode: "public", // Use public instead of anonymous
           invalidate: true,         // Invalidate CDN cache
           overwrite: false,         // Don't overwrite existing files
           discard_original_filename: false // Keep original filename info
@@ -80,7 +80,7 @@ export default () => {
         
         // Ensure the uploaded file has public access
         await cloudinary.api.update(result.public_id, {
-          access_mode: "anonymous",
+          access_mode: "public",
           resource_type: "raw"
         });
         
